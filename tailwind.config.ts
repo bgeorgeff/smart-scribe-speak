@@ -13,6 +13,14 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        'dyslexic-arial': ['Arial', 'sans-serif'],
+        'dyslexic-verdana': ['Verdana', 'sans-serif'],
+        'dyslexic-helvetica': ['Helvetica', 'Arial', 'sans-serif'],
+        'dyslexic-tahoma': ['Tahoma', 'sans-serif'],
+        'dyslexic-calibri': ['Calibri', 'sans-serif'],
+        'dyslexic-comic': ['Comic Sans MS', 'cursive'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
