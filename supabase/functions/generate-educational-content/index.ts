@@ -24,7 +24,30 @@ serve(async (req) => {
 
     console.log(`Generating content for topic: ${topic}, grade: ${gradeLevel}`);
 
-    // First, search for information about the topic
+    // Determine if the topic requires current, up-to-date information
+    const requiresCurrentInfo = topic.toLowerCase().includes('recent') || 
+                               topic.toLowerCase().includes('latest') || 
+                               topic.toLowerCase().includes('current') ||
+                               topic.toLowerCase().includes('today') ||
+                               topic.toLowerCase().includes('this week') ||
+                               topic.toLowerCase().includes('this month') ||
+                               topic.toLowerCase().includes('this year') ||
+                               topic.toLowerCase().includes('last') ||
+                               topic.toLowerCase().includes('game') ||
+                               topic.toLowerCase().includes('match') ||
+                               topic.toLowerCase().includes('event');
+
+    console.log(`Requires current info: ${requiresCurrentInfo}`);
+
+    // First, search for information about the topic with web browsing if needed
+    const researchSystemPrompt = requiresCurrentInfo 
+      ? 'You are an educational content researcher with access to current web information. Search the web for the most recent and up-to-date information. Include specific dates, scores, results, and current facts. Provide accurate, real-time information about recent events. Also suggest 3-5 credible sources.'
+      : 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes. Also suggest 3-5 credible sources that would be good for learning more about this topic.';
+
+    const researchUserPrompt = requiresCurrentInfo
+      ? `Search the web for current information about: ${topic}. Find the most recent facts, events, scores, dates, and developments. Be specific about dates and include the most up-to-date information available. Include key facts, important details, and suggest credible sources for further reading.`
+      : `Research and provide comprehensive information about: ${topic}. Include key facts, important details, and suggest credible sources for further reading.`;
+
     const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -36,11 +59,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes. Also suggest 3-5 credible sources that would be good for learning more about this topic.'
+            content: researchSystemPrompt
           },
           {
             role: 'user',
-            content: `Research and provide comprehensive information about: ${topic}. Include key facts, important details, and suggest credible sources for further reading.`
+            content: researchUserPrompt
           }
         ]
       })
@@ -54,7 +77,7 @@ serve(async (req) => {
     const researchInfo = searchData.choices[0].message.content;
 
     // Generate grade-appropriate content based on research
-    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo);
+    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo);
 
     const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -119,7 +142,7 @@ serve(async (req) => {
   }
 });
 
-function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string) {
+function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string, requiresCurrentInfo: boolean = false) {
   const grade = parseInt(gradeLevel);
   
   let complexity, vocabulary, sentenceStructure, examples;
@@ -146,6 +169,10 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
     examples = "in-depth analysis and abstract concepts";
   }
 
+  const currentInfoNote = requiresCurrentInfo 
+    ? '\n8. IMPORTANT: Include specific dates, times, scores, and recent details from the research. Make sure all information is current and up-to-date.'
+    : '';
+
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
 
 Your task is to write educational content for grade ${gradeLevel} students about ${topic}.
@@ -163,7 +190,7 @@ Content requirements:
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
 6. Write in an engaging, friendly tone
-7. At the end, add a "SOURCES:" section with 3-5 educational sources related to the topic
+7. At the end, add a "SOURCES:" section with 3-5 educational sources related to the topic${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
@@ -175,11 +202,15 @@ SOURCES:
 4. [Source 4 description]
 5. [Source 5 description]`;
 
+  const currentInfoUserNote = requiresCurrentInfo
+    ? ' Make sure to include specific dates, scores, results, and the most current information available from the research.'
+    : '';
+
   const userPrompt = `Create educational content about "${topic}" for grade ${gradeLevel} students. Use this research information to ensure accuracy:
 
 ${researchInfo}
 
-Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.`;
+Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}`;
 
   return { systemPrompt, userPrompt };
 }
