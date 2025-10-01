@@ -41,13 +41,17 @@ const Index = () => {
       return;
     }
 
+    await generateContentWithGrade(gradeLevel);
+  };
+
+  const generateContentWithGrade = async (grade: string) => {
     setIsGenerating(true);
     setContent("");
     setCitations([]);
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
-        body: { topic: topic.trim(), gradeLevel }
+        body: { topic: topic.trim(), gradeLevel: grade }
       });
 
       if (error) throw error;
@@ -209,7 +213,28 @@ const Index = () => {
               <CardTitle className="text-2xl text-foreground font-semibold">
                 Generated Content
               </CardTitle>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-sm text-muted-foreground">Change Grade:</label>
+                  <Select value={gradeLevel} onValueChange={(newGrade) => {
+                    setGradeLevel(newGrade);
+                    if (topic.trim()) {
+                      setIsGenerating(true);
+                      generateContentWithGrade(newGrade);
+                    }
+                  }}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {gradeOptions.map((grade) => (
+                        <SelectItem key={grade.value} value={grade.value}>
+                          {grade.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 {selectedText && (
                   <span className="text-sm text-muted-foreground">
                     Text selected
