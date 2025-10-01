@@ -188,7 +188,7 @@ const Index = () => {
             <Button
               onClick={generateContent}
               disabled={isGenerating || !topic.trim() || !gradeLevel}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-glow hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
               size="lg"
             >
               {isGenerating ? (
