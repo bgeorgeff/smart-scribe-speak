@@ -121,20 +121,20 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <header className="text-center space-y-4 py-8">
-          <h1 className="text-5xl font-bold bg-gradient-primary bg-clip-text text-transparent animate-fade-in">
-            AI Educational Content Generator
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-5xl mx-auto space-y-10">
+        <header className="text-center space-y-6 py-12">
+          <h1 className="text-6xl md:text-7xl font-bold text-foreground animate-fade-in leading-tight">
+            Learn <span className="text-primary italic">anything</span>
           </h1>
-          <p className="text-xl text-muted-foreground animate-fade-in">
-            Generate grade-appropriate explanations with interactive reading features
+          <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">
+            AI-powered educational content tailored to any grade level with dyslexia-friendly reading tools
           </p>
         </header>
 
-        <Card className="bg-gradient-card border-primary/20 shadow-elegant backdrop-blur-sm">
+        <Card className="bg-card border-border/50 shadow-elegant">
           <CardHeader>
-            <CardTitle className="text-2xl bg-gradient-primary bg-clip-text text-transparent">
+            <CardTitle className="text-2xl text-foreground font-semibold">
               Content Settings
             </CardTitle>
           </CardHeader>
@@ -188,7 +188,7 @@ const Index = () => {
             <Button
               onClick={generateContent}
               disabled={isGenerating || !topic.trim() || !gradeLevel}
-              className="w-full bg-gradient-primary hover:shadow-glow transition-all duration-300 text-lg py-6"
+              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-glow hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
               size="lg"
             >
               {isGenerating ? (
@@ -204,9 +204,9 @@ const Index = () => {
         </Card>
 
         {content && (
-          <Card className="bg-gradient-card border-secondary/30 shadow-elegant backdrop-blur-sm animate-fade-in">
+          <Card className="bg-card border-border/50 shadow-elegant animate-fade-in">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-2xl bg-gradient-secondary bg-clip-text text-transparent">
+              <CardTitle className="text-2xl text-foreground font-semibold">
                 Generated Content
               </CardTitle>
               <div className="flex items-center gap-2">
@@ -219,7 +219,7 @@ const Index = () => {
                   onClick={isPlaying ? stopSpeech : playSelectedText}
                   variant="outline"
                   size="sm"
-                  className="bg-accent/10 border-accent/30 hover:bg-accent hover:text-accent-foreground transition-all"
+                  className="border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all"
                 >
                   {isPlaying ? (
                     <>
@@ -249,11 +249,11 @@ const Index = () => {
         )}
 
         {citations.length > 0 && (
-          <Card className="bg-gradient-card border-accent/20 shadow-elegant backdrop-blur-sm animate-fade-in">
+          <Card className="bg-card border-border/50 shadow-elegant animate-fade-in">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Volume2 className="w-5 h-5 text-accent" />
-                <span className="bg-gradient-primary bg-clip-text text-transparent">
+              <CardTitle className="flex items-center gap-2 text-xl text-foreground font-semibold">
+                <Volume2 className="w-5 h-5 text-primary" />
+                <span>
                   Sources & Citations
                 </span>
               </CardTitle>
