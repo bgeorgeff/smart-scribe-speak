@@ -65,7 +65,8 @@ serve(async (req) => {
             role: 'user',
             content: researchUserPrompt
           }
-        ]
+        ],
+        tools: requiresCurrentInfo ? [{ type: "google_search_retrieval" }] : undefined
       })
     });
 
