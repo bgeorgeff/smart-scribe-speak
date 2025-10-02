@@ -350,11 +350,31 @@ const Index = () => {
             </CardHeader>
             <CardContent>
               <ol className="list-decimal list-inside space-y-2">
-                {citations.map((citation, index) => (
-                  <li key={index} className="text-sm text-muted-foreground">
-                    {citation}
-                  </li>
-                ))}
+                {citations.map((citation, index) => {
+                  const urlRegex = /(https?:\/\/[^\s]+)/g;
+                  const parts = citation.split(urlRegex);
+                  
+                  return (
+                    <li key={index} className="text-sm text-muted-foreground">
+                      {parts.map((part, partIndex) => {
+                        if (part.match(urlRegex)) {
+                          return (
+                            <a
+                              key={partIndex}
+                              href={part}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline"
+                            >
+                              {part}
+                            </a>
+                          );
+                        }
+                        return <span key={partIndex}>{part}</span>;
+                      })}
+                    </li>
+                  );
+                })}
               </ol>
             </CardContent>
           </Card>
