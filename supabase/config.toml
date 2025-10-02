@@ -18,3 +18,6 @@ enable_confirmations = false
 
 [functions.generate-educational-content]
 verify_jwt = false
+
+[functions.speech-to-text]
+verify_jwt = false

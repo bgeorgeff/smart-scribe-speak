@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Play, Pause, Square, Volume2 } from "lucide-react";
+import { Loader2, Play, Pause, Square, Volume2, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FontSelector } from "@/components/FontSelector";
 import { InteractiveText } from "@/components/InteractiveText";
+import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 
 const Index = () => {
   const [topic, setTopic] = useState("");
@@ -20,6 +21,8 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedText, setSelectedText] = useState("");
+  const { isRecording, startRecording, stopRecording } = useAudioRecorder();
+  const [isTranscribing, setIsTranscribing] = useState(false);
   
   const { toast } = useToast();
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
@@ -109,6 +112,51 @@ const Index = () => {
     }
   };
 
+  const handleMicClick = async () => {
+    if (isRecording) {
+      try {
+        setIsTranscribing(true);
+        const audioData = await stopRecording();
+        
+        const { data, error } = await supabase.functions.invoke('speech-to-text', {
+          body: { audio: audioData }
+        });
+
+        if (error) throw error;
+
+        setTopic(data.text);
+        toast({
+          title: "Success",
+          description: "Voice recorded and transcribed successfully!",
+        });
+      } catch (error) {
+        console.error('Error transcribing audio:', error);
+        toast({
+          title: "Error",
+          description: "Failed to transcribe audio. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsTranscribing(false);
+      }
+    } else {
+      try {
+        await startRecording();
+        toast({
+          title: "Recording",
+          description: "Speak your topic now...",
+        });
+      } catch (error) {
+        console.error('Error starting recording:', error);
+        toast({
+          title: "Error",
+          description: "Failed to access microphone. Please check permissions.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const gradeOptions = [
     { value: "1", label: "1st Grade" },
     { value: "2", label: "2nd Grade" },
@@ -146,12 +194,29 @@ const Index = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Topic</label>
-                <Input
-                  placeholder="e.g., Solar System, Photosynthesis, World War II"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  className="w-full"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Solar System, Photosynthesis, World War II"
+                    value={topic}
+                    onChange={(e) => setTopic(e.target.value)}
+                    className="w-full"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleMicClick}
+                    disabled={isTranscribing}
+                    variant={isRecording ? "destructive" : "outline"}
+                    size="icon"
+                    className="shrink-0"
+                    title={isRecording ? "Stop recording" : "Start voice recording"}
+                  >
+                    {isTranscribing ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mic className={`h-4 w-4 ${isRecording ? 'animate-pulse' : ''}`} />
+                    )}
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-2">
