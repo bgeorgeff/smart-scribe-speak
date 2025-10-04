@@ -364,7 +364,7 @@ const Index = () => {
                               href={part}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-primary hover:underline"
+                              className="text-primary hover:underline underline cursor-pointer font-medium"
                             >
                               {part}
                             </a>
