@@ -41,11 +41,11 @@ serve(async (req) => {
 
     // First, search for information about the topic with web browsing if needed
     const researchSystemPrompt = requiresCurrentInfo 
-      ? 'You are an educational content researcher with access to current web information. Search the web for the most recent and up-to-date information. Include specific dates, scores, results, and current facts. Provide accurate, real-time information about recent events. Also suggest 3-5 credible sources.'
+      ? `You are an educational content researcher with access to real-time web search. Today's date is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. You MUST search the web for the most recent information available. Focus on events from ${new Date().getFullYear()}, specifically the most recent weeks and months. Include specific dates, scores, results, and current facts. Provide accurate, real-time information about recent events. Cite your sources.`
       : 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes. Also suggest 3-5 credible sources that would be good for learning more about this topic.';
 
     const researchUserPrompt = requiresCurrentInfo
-      ? `Search the web for current information about: ${topic}. Find the most recent facts, events, scores, dates, and developments. Be specific about dates and include the most up-to-date information available. Include key facts, important details, and suggest credible sources for further reading.`
+      ? `IMPORTANT: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Search the web RIGHT NOW for the absolute most recent information about: ${topic}. Find events from ${new Date().getFullYear()}, preferably from the last few weeks or months. Include specific dates, scores, names, and the most up-to-date information available. Do NOT use old information from previous years unless it's the only information available.`
       : `Research and provide comprehensive information about: ${topic}. Include key facts, important details, and suggest credible sources for further reading.`;
 
     const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -93,6 +93,11 @@ serve(async (req) => {
     }
     
     console.log('Actual sources found:', actualSources.length);
+    if (actualSources.length > 0) {
+      console.log('Sample source:', actualSources[0]);
+    } else {
+      console.log('WARNING: No actual sources found from grounding metadata');
+    }
 
     // Generate grade-appropriate content based on research
     const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
@@ -193,7 +198,7 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
   }
 
   const currentInfoNote = requiresCurrentInfo 
-    ? '\n8. IMPORTANT: Include specific dates, times, scores, and recent details from the research. Make sure all information is current and up-to-date.'
+    ? `\n8. CRITICAL: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Include ONLY the most recent information from ${new Date().getFullYear()}. Include specific dates, times, scores, and recent details from the research. If discussing a "most recent" or "latest" event, it MUST be from ${new Date().getFullYear()}, preferably the last few weeks or months.`
     : '';
 
   const sourcesNote = actualSources.length > 0
@@ -228,7 +233,7 @@ SOURCES:
 ...${sourcesNote}`;
 
   const currentInfoUserNote = requiresCurrentInfo
-    ? ' Make sure to include specific dates, scores, results, and the most current information available from the research.'
+    ? ` CRITICAL: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Make sure to include ONLY the most recent information from ${new Date().getFullYear()}. Include specific dates, scores, results, and the most current information available from the research. If the topic asks for "most recent" or "latest", the information MUST be from ${new Date().getFullYear()}.`
     : '';
 
   const userPrompt = `Create educational content about "${topic}" for grade ${gradeLevel} students. Use this research information to ensure accuracy:
