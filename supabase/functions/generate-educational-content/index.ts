@@ -191,17 +191,20 @@ Content requirements:
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
 6. Write in an engaging, friendly tone
-7. At the end, add a "SOURCES:" section with 3-5 educational sources related to the topic${currentInfoNote}
+7. At the end, add a "SOURCES:" section with 3-5 credible web sources with actual clickable URLs${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
 
 SOURCES:
-1. [Source 1 description]
-2. [Source 2 description]
-3. [Source 3 description]
-4. [Source 4 description]
-5. [Source 5 description]`;
+1. [Source name] - [actual URL starting with http:// or https://]
+2. [Source name] - [actual URL starting with http:// or https://]
+3. [Source name] - [actual URL starting with http:// or https://]
+4. [Source name] - [actual URL starting with http:// or https://]
+5. [Source name] - [actual URL starting with http:// or https://]
+
+Example source format: "NASA Official Website - https://www.nasa.gov/topics/solar-system"`;
+
 
   const currentInfoUserNote = requiresCurrentInfo
     ? ' Make sure to include specific dates, scores, results, and the most current information available from the research.'
