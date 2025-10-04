@@ -76,9 +76,26 @@ serve(async (req) => {
 
     const searchData = await searchResponse.json();
     const researchInfo = searchData.choices[0].message.content;
+    
+    // Extract grounding metadata (actual URLs from search results)
+    const groundingMetadata = searchData.choices[0].message.grounding_metadata;
+    let actualSources: Array<{title: string, url: string}> = [];
+    
+    if (groundingMetadata && groundingMetadata.grounding_chunks) {
+      // Parse the grounding chunks to extract actual URLs
+      actualSources = groundingMetadata.grounding_chunks
+        .filter((chunk: any) => chunk.web && chunk.web.uri)
+        .map((chunk: any) => ({
+          title: chunk.web.title || 'Source',
+          url: chunk.web.uri
+        }))
+        .slice(0, 5); // Take top 5 sources
+    }
+    
+    console.log('Actual sources found:', actualSources.length);
 
     // Generate grade-appropriate content based on research
-    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo);
+    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
 
     const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -108,8 +125,13 @@ serve(async (req) => {
     const contentData = await contentResponse.json();
     const generatedContent = contentData.choices[0].message.content;
 
-    // Extract content and citations
-    const { content, citations } = parseContentAndCitations(generatedContent);
+    // Extract content and citations, or use actual sources if available
+    let { content, citations } = parseContentAndCitations(generatedContent);
+    
+    // If we have actual sources and no citations were parsed, use the actual sources
+    if (citations.length === 0 && actualSources.length > 0) {
+      citations = actualSources.map(s => `${s.title} - ${s.url}`);
+    }
 
     console.log('Content generated successfully');
 
@@ -143,7 +165,7 @@ serve(async (req) => {
   }
 });
 
-function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string, requiresCurrentInfo: boolean = false) {
+function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string, requiresCurrentInfo: boolean = false, actualSources: Array<{title: string, url: string}> = []) {
   const grade = parseInt(gradeLevel);
   
   let complexity, vocabulary, sentenceStructure, examples;
@@ -174,6 +196,10 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
     ? '\n8. IMPORTANT: Include specific dates, times, scores, and recent details from the research. Make sure all information is current and up-to-date.'
     : '';
 
+  const sourcesNote = actualSources.length > 0
+    ? `\n\nUse these actual sources from the research (you MUST include these exact URLs in your SOURCES section):\n${actualSources.map((s, i) => `${i + 1}. ${s.title} - ${s.url}`).join('\n')}`
+    : '';
+
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
 
 Your task is to write educational content for grade ${gradeLevel} students about ${topic}.
@@ -191,20 +217,15 @@ Content requirements:
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
 6. Write in an engaging, friendly tone
-7. At the end, add a "SOURCES:" section with 3-5 credible web sources with actual clickable URLs${currentInfoNote}
+7. At the end, add a "SOURCES:" section with the provided source URLs${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
 
 SOURCES:
-1. [Source name] - [actual URL starting with http:// or https://]
-2. [Source name] - [actual URL starting with http:// or https://]
-3. [Source name] - [actual URL starting with http:// or https://]
-4. [Source name] - [actual URL starting with http:// or https://]
-5. [Source name] - [actual URL starting with http:// or https://]
-
-Example source format: "NASA Official Website - https://www.nasa.gov/topics/solar-system"`;
-
+1. [Source name] - [URL]
+2. [Source name] - [URL]
+...${sourcesNote}`;
 
   const currentInfoUserNote = requiresCurrentInfo
     ? ' Make sure to include specific dates, scores, results, and the most current information available from the research.'
@@ -214,7 +235,9 @@ Example source format: "NASA Official Website - https://www.nasa.gov/topics/sola
 
 ${researchInfo}
 
-Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}`;
+Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}
+
+IMPORTANT: In your SOURCES section, you MUST use the exact URLs provided above. Do not make up or generalize URLs.`;
 
   return { systemPrompt, userPrompt };
 }
