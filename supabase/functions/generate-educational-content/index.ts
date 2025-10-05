@@ -66,7 +66,7 @@ serve(async (req) => {
             content: researchUserPrompt
           }
         ],
-        tools: requiresCurrentInfo ? [{ type: "google_search_retrieval" }] : undefined
+        tools: requiresCurrentInfo ? [{ google_search: {} }] : undefined
       })
     });
 
@@ -75,21 +75,33 @@ serve(async (req) => {
     }
 
     const searchData = await searchResponse.json();
+    console.log('Full search response:', JSON.stringify(searchData, null, 2));
+    
     const researchInfo = searchData.choices[0].message.content;
     
     // Extract grounding metadata (actual URLs from search results)
-    const groundingMetadata = searchData.choices[0].message.grounding_metadata;
+    // The response structure should have groundingMetadata in candidates
+    const candidate = searchData.choices?.[0];
+    const groundingMetadata = candidate?.groundingMetadata || candidate?.grounding_metadata;
     let actualSources: Array<{title: string, url: string}> = [];
     
-    if (groundingMetadata && groundingMetadata.grounding_chunks) {
+    if (groundingMetadata) {
+      console.log('Grounding metadata found:', JSON.stringify(groundingMetadata, null, 2));
+      const chunks = groundingMetadata.groundingChunks || groundingMetadata.grounding_chunks || [];
+      
       // Parse the grounding chunks to extract actual URLs
-      actualSources = groundingMetadata.grounding_chunks
+      actualSources = chunks
         .filter((chunk: any) => chunk.web && chunk.web.uri)
         .map((chunk: any) => ({
           title: chunk.web.title || 'Source',
           url: chunk.web.uri
         }))
         .slice(0, 5); // Take top 5 sources
+    } else {
+      console.log('No grounding metadata in response. Full response structure:', Object.keys(searchData));
+      if (searchData.choices?.[0]) {
+        console.log('Choice keys:', Object.keys(searchData.choices[0]));
+      }
     }
     
     console.log('Actual sources found:', actualSources.length);
