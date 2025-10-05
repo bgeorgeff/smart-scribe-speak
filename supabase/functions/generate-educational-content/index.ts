@@ -39,77 +39,92 @@ serve(async (req) => {
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
-    // First, search for information about the topic with web browsing if needed
-    const researchSystemPrompt = requiresCurrentInfo 
-      ? `You are an educational content researcher with access to real-time web search. Today's date is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. You MUST search the web for the most recent information available. Focus on events from ${new Date().getFullYear()}, specifically the most recent weeks and months. Include specific dates, scores, results, and current facts. Provide accurate, real-time information about recent events. Cite your sources.`
-      : 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes. Also suggest 3-5 credible sources that would be good for learning more about this topic.';
-
-    const researchUserPrompt = requiresCurrentInfo
-      ? `IMPORTANT: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Search the web RIGHT NOW for the absolute most recent information about: ${topic}. Find events from ${new Date().getFullYear()}, preferably from the last few weeks or months. Include specific dates, scores, names, and the most up-to-date information available. Do NOT use old information from previous years unless it's the only information available.`
-      : `Research and provide comprehensive information about: ${topic}. Include key facts, important details, and suggest credible sources for further reading.`;
-
-    const searchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: researchSystemPrompt
-          },
-          {
-            role: 'user',
-            content: researchUserPrompt
-          }
-        ],
-        tools: requiresCurrentInfo ? [{ google_search: {} }] : undefined
-      })
-    });
-
-    if (!searchResponse.ok) {
-      throw new Error(`Research failed: ${searchResponse.status}`);
-    }
-
-    const searchData = await searchResponse.json();
-    console.log('Full search response:', JSON.stringify(searchData, null, 2));
-    
-    const researchInfo = searchData.choices[0].message.content;
-    
-    // Extract grounding metadata (actual URLs from search results)
-    // The response structure should have groundingMetadata in candidates
-    const candidate = searchData.choices?.[0];
-    const groundingMetadata = candidate?.groundingMetadata || candidate?.grounding_metadata;
+    let researchInfo = '';
     let actualSources: Array<{title: string, url: string}> = [];
-    
-    if (groundingMetadata) {
-      console.log('Grounding metadata found:', JSON.stringify(groundingMetadata, null, 2));
-      const chunks = groundingMetadata.groundingChunks || groundingMetadata.grounding_chunks || [];
+
+    if (requiresCurrentInfo) {
+      // Perform actual web search for current information
+      console.log(`Searching web for: ${topic}`);
       
-      // Parse the grounding chunks to extract actual URLs
-      actualSources = chunks
-        .filter((chunk: any) => chunk.web && chunk.web.uri)
-        .map((chunk: any) => ({
-          title: chunk.web.title || 'Source',
-          url: chunk.web.uri
-        }))
-        .slice(0, 5); // Take top 5 sources
-    } else {
-      console.log('No grounding metadata in response. Full response structure:', Object.keys(searchData));
-      if (searchData.choices?.[0]) {
-        console.log('Choice keys:', Object.keys(searchData.choices[0]));
+      const searchQuery = topic;
+      const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
+      
+      try {
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Subscription-Token': Deno.env.get('BRAVE_SEARCH_API_KEY') || ''
+          }
+        });
+
+        if (searchResponse.ok) {
+          const searchResults = await searchResponse.json();
+          console.log('Search results:', JSON.stringify(searchResults, null, 2));
+          
+          // Extract sources and snippets
+          if (searchResults.web?.results) {
+            actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
+              title: result.title,
+              url: result.url
+            }));
+            
+            // Combine search results into research info
+            researchInfo = searchResults.web.results
+              .slice(0, 5)
+              .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
+              .join('\n\n');
+            
+            console.log('Found sources:', actualSources.length);
+          }
+        } else {
+          console.log('Search API failed, falling back to AI research');
+        }
+      } catch (error) {
+        console.error('Search error:', error);
       }
     }
-    
-    console.log('Actual sources found:', actualSources.length);
-    if (actualSources.length > 0) {
-      console.log('Sample source:', actualSources[0]);
-    } else {
-      console.log('WARNING: No actual sources found from grounding metadata');
+
+    // If we didn't get web search results, use AI to research
+    if (!researchInfo) {
+      const researchSystemPrompt = requiresCurrentInfo 
+        ? `You are an educational content researcher. Today's date is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Provide the most accurate information you can about recent events. Include specific dates, scores, results, and current facts when available.`
+        : 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes.';
+
+      const researchUserPrompt = requiresCurrentInfo
+        ? `Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Provide detailed information about: ${topic}. Include the most recent and up-to-date information available.`
+        : `Research and provide comprehensive information about: ${topic}. Include key facts and important details.`;
+
+      const aiResearchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'system',
+              content: researchSystemPrompt
+            },
+            {
+              role: 'user',
+              content: researchUserPrompt
+            }
+          ]
+        })
+      });
+
+      if (!aiResearchResponse.ok) {
+        throw new Error(`AI research failed: ${aiResearchResponse.status}`);
+      }
+
+      const aiResearchData = await aiResearchResponse.json();
+      researchInfo = aiResearchData.choices[0].message.content;
     }
+    
+    console.log('Research info length:', researchInfo.length);
+    console.log('Actual sources found:', actualSources.length);
 
     // Generate grade-appropriate content based on research
     const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
