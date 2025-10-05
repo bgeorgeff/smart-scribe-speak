@@ -129,6 +129,18 @@ serve(async (req) => {
     // Generate grade-appropriate content based on research
     const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
 
+    // If we have web search results, inject them directly into the user prompt
+    const userPromptWithContext = requiresCurrentInfo && researchInfo ? 
+      `CURRENT WEB SEARCH RESULTS (Retrieved at ${new Date().toLocaleString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })} - USE ONLY THIS INFORMATION):\n\n${researchInfo}\n\n---\n\n${contentPrompt.userPrompt}` 
+      : contentPrompt.userPrompt;
+
     const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -144,7 +156,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: contentPrompt.userPrompt
+            content: userPromptWithContext
           }
         ]
       })
@@ -233,6 +245,15 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
     : '';
 
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
+
+${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. The current date and time is ${new Date().toLocaleString('en-US', { 
+    weekday: 'long', 
+    month: 'long', 
+    day: 'numeric', 
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })}. You MUST use ONLY the information from the web search results provided. DO NOT use your training data for current events, live games, or recent information. If the search results mention live or current events, present them as live/current.` : ''}
 
 Your task is to write educational content for grade ${gradeLevel} students about ${topic}.
 
