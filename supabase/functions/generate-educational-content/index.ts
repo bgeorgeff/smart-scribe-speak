@@ -46,7 +46,10 @@ serve(async (req) => {
       // Perform actual web search for current information
       console.log(`Searching web for: ${topic}`);
       
-      const searchQuery = topic;
+      // Enhance search query with today's date when asking about "today"
+      const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const isTodayQuery = topic.toLowerCase().includes('today');
+      const searchQuery = isTodayQuery ? `${topic} ${today}` : topic;
       const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
       
       try {
@@ -246,14 +249,18 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
 
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
 
-${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. The current date and time is ${new Date().toLocaleString('en-US', { 
+${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. Today's date is ${new Date().toLocaleDateString('en-US', { 
     weekday: 'long', 
     month: 'long', 
     day: 'numeric', 
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit'
-  })}. You MUST use ONLY the information from the web search results provided. DO NOT use your training data for current events, live games, or recent information. If the search results mention live or current events, present them as live/current.` : ''}
+    year: 'numeric'
+  })}. You MUST:
+1. Use ONLY the information from the web search results provided
+2. DO NOT use your training data for current events, live games, or recent information
+3. Check if the game/event dates in the search results match the requested date (today, this week, etc.)
+4. If NO game is scheduled for the requested date, clearly state "There is no [team] game scheduled for [date]" and explain when the most recent game was
+5. NEVER present past games as if they happened on the requested date
+6. Always include the actual date of the game you're discussing` : ''}
 
 Your task is to write educational content for grade ${gradeLevel} students about ${topic}.
 
