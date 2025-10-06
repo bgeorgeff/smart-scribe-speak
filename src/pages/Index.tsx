@@ -53,8 +53,17 @@ const Index = () => {
     setCitations([]);
 
     try {
+      // Get user's local date and timezone
+      const userDate = new Date();
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
-        body: { topic: topic.trim(), gradeLevel: grade }
+        body: { 
+          topic: topic.trim(), 
+          gradeLevel: grade,
+          userDate: userDate.toISOString(),
+          userTimezone: userTimezone
+        }
       });
 
       if (error) throw error;

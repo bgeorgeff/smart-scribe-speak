@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, gradeLevel } = await req.json();
+    const { topic, gradeLevel, userDate, userTimezone } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -23,6 +23,11 @@ serve(async (req) => {
     }
 
     console.log(`Generating content for topic: ${topic}, grade: ${gradeLevel}`);
+    
+    // Use user's local date if provided, otherwise fall back to server date
+    const currentDate = userDate ? new Date(userDate) : new Date();
+    console.log(`User date: ${currentDate.toLocaleString('en-US', { timeZone: userTimezone || 'UTC' })}`);
+    console.log(`User timezone: ${userTimezone || 'UTC'}`);
 
     // Determine if the topic requires current, up-to-date information
     const requiresCurrentInfo = topic.toLowerCase().includes('recent') || 
@@ -46,15 +51,24 @@ serve(async (req) => {
       // Perform actual web search for current information
       console.log(`Searching web for: ${topic}`);
       
-      // Enhance search query with today's exact date for "today" queries
-      const today = new Date();
-      const todayFormatted = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-      const todayShort = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      // Enhance search query with user's local date for "today" queries
+      const todayFormatted = currentDate.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric',
+        timeZone: userTimezone || 'UTC'
+      });
+      const todayShort = currentDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric',
+        timeZone: userTimezone || 'UTC'
+      });
       const isTodayQuery = topic.toLowerCase().includes('today');
       
       // For today queries, add multiple date formats to improve search accuracy
       const searchQuery = isTodayQuery 
-        ? `${topic} "${todayFormatted}" OR "${todayShort}" OR "Oct 5, 2025"` 
+        ? `${topic} "${todayFormatted}" OR "${todayShort}"` 
         : topic;
       
       console.log(`Enhanced search query: ${searchQuery}`);
@@ -97,12 +111,19 @@ serve(async (req) => {
 
     // If we didn't get web search results, use AI to research
     if (!researchInfo) {
+      const researchDate = currentDate.toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric',
+        timeZone: userTimezone || 'UTC'
+      });
+      
       const researchSystemPrompt = requiresCurrentInfo 
-        ? `You are an educational content researcher. Today's date is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Provide the most accurate information you can about recent events. Include specific dates, scores, results, and current facts when available.`
+        ? `You are an educational content researcher. Today's date is ${researchDate}. Provide the most accurate information you can about recent events. Include specific dates, scores, results, and current facts when available.`
         : 'You are an educational content researcher. Your task is to provide accurate, factual information about topics that can be used to create educational content. Include specific facts, dates, names, and processes.';
 
       const researchUserPrompt = requiresCurrentInfo
-        ? `Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Provide detailed information about: ${topic}. Include the most recent and up-to-date information available.`
+        ? `Today is ${researchDate}. Provide detailed information about: ${topic}. Include the most recent and up-to-date information available.`
         : `Research and provide comprehensive information about: ${topic}. Include key facts and important details.`;
 
       const aiResearchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -138,20 +159,25 @@ serve(async (req) => {
     console.log('Actual sources found:', actualSources.length);
 
     // Generate grade-appropriate content based on research
-    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
+    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources, currentDate, userTimezone);
 
     // If we have web search results, inject them directly into the user prompt with strict date requirements
-    const today = new Date();
-    const todayFormatted = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const todayFormatted = currentDate.toLocaleDateString('en-US', { 
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric',
+      timeZone: userTimezone || 'UTC'
+    });
     
     const userPromptWithContext = requiresCurrentInfo && researchInfo ? 
-      `CURRENT WEB SEARCH RESULTS (Retrieved: ${new Date().toLocaleString('en-US', { 
+      `CURRENT WEB SEARCH RESULTS (Retrieved: ${currentDate.toLocaleString('en-US', { 
         weekday: 'long', 
         month: 'long', 
         day: 'numeric', 
         year: 'numeric',
         hour: 'numeric',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZone: userTimezone || 'UTC'
       })}):\n\n${researchInfo}\n\n---\n\nIMPORTANT: Today is ${todayFormatted}. If the user asked about "today's game", you MUST ONLY discuss games that happened on ${todayFormatted}. If no game happened on ${todayFormatted}, clearly state that.\n\n${contentPrompt.userPrompt}` 
       : contentPrompt.userPrompt;
 
@@ -223,7 +249,7 @@ serve(async (req) => {
   }
 });
 
-function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string, requiresCurrentInfo: boolean = false, actualSources: Array<{title: string, url: string}> = []) {
+function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchInfo: string, requiresCurrentInfo: boolean = false, actualSources: Array<{title: string, url: string}> = [], currentDate: Date = new Date(), userTimezone: string = 'UTC') {
   const grade = parseInt(gradeLevel);
   
   let complexity, vocabulary, sentenceStructure, examples;
@@ -251,7 +277,7 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
   }
 
   const currentInfoNote = requiresCurrentInfo 
-    ? `\n8. CRITICAL: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Include ONLY the most recent information from ${new Date().getFullYear()}. Include specific dates, times, scores, and recent details from the research. If discussing a "most recent" or "latest" event, it MUST be from ${new Date().getFullYear()}, preferably the last few weeks or months.`
+    ? `\n8. CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, times, scores, and recent details from the research. If discussing a "most recent" or "latest" event, it MUST be from ${currentDate.getFullYear()}, preferably the last few weeks or months.`
     : '';
 
   const sourcesNote = actualSources.length > 0
@@ -260,11 +286,12 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
 
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
 
-${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. Today's date is ${new Date().toLocaleDateString('en-US', { 
+${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. Today's date is ${currentDate.toLocaleDateString('en-US', { 
     weekday: 'long', 
     month: 'long', 
     day: 'numeric', 
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: userTimezone
   })}. You MUST:
 1. Use ONLY the information from the web search results provided
 2. DO NOT use your training data for current events, live games, or recent information
@@ -299,7 +326,7 @@ SOURCES:
 ...${sourcesNote}`;
 
   const currentInfoUserNote = requiresCurrentInfo
-    ? ` CRITICAL: Today is ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}. Make sure to include ONLY the most recent information from ${new Date().getFullYear()}. Include specific dates, scores, results, and the most current information available from the research. If the topic asks for "most recent" or "latest", the information MUST be from ${new Date().getFullYear()}.`
+    ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, scores, results, and the most current information available from the research. If the topic asks for "most recent" or "latest", the information MUST be from ${currentDate.getFullYear()}.`
     : '';
 
   const userPrompt = `Create educational content about "${topic}" for grade ${gradeLevel} students. Use this research information to ensure accuracy:
