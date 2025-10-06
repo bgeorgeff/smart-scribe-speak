@@ -46,10 +46,18 @@ serve(async (req) => {
       // Perform actual web search for current information
       console.log(`Searching web for: ${topic}`);
       
-      // Enhance search query with today's date when asking about "today"
-      const today = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      // Enhance search query with today's exact date for "today" queries
+      const today = new Date();
+      const todayFormatted = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      const todayShort = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const isTodayQuery = topic.toLowerCase().includes('today');
-      const searchQuery = isTodayQuery ? `${topic} ${today}` : topic;
+      
+      // For today queries, add multiple date formats to improve search accuracy
+      const searchQuery = isTodayQuery 
+        ? `${topic} "${todayFormatted}" OR "${todayShort}" OR "Oct 5, 2025"` 
+        : topic;
+      
+      console.log(`Enhanced search query: ${searchQuery}`);
       const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
       
       try {
@@ -132,16 +140,19 @@ serve(async (req) => {
     // Generate grade-appropriate content based on research
     const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources);
 
-    // If we have web search results, inject them directly into the user prompt
+    // If we have web search results, inject them directly into the user prompt with strict date requirements
+    const today = new Date();
+    const todayFormatted = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    
     const userPromptWithContext = requiresCurrentInfo && researchInfo ? 
-      `CURRENT WEB SEARCH RESULTS (Retrieved at ${new Date().toLocaleString('en-US', { 
+      `CURRENT WEB SEARCH RESULTS (Retrieved: ${new Date().toLocaleString('en-US', { 
         weekday: 'long', 
         month: 'long', 
         day: 'numeric', 
         year: 'numeric',
         hour: 'numeric',
         minute: '2-digit'
-      })} - USE ONLY THIS INFORMATION):\n\n${researchInfo}\n\n---\n\n${contentPrompt.userPrompt}` 
+      })}):\n\n${researchInfo}\n\n---\n\nIMPORTANT: Today is ${todayFormatted}. If the user asked about "today's game", you MUST ONLY discuss games that happened on ${todayFormatted}. If no game happened on ${todayFormatted}, clearly state that.\n\n${contentPrompt.userPrompt}` 
       : contentPrompt.userPrompt;
 
     const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
