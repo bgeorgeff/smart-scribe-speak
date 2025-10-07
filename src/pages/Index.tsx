@@ -13,6 +13,7 @@ import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { Auth } from "@/components/Auth";
 import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
+import { SavedContentList } from "@/components/SavedContentList";
 
 const Index = () => {
   const [topic, setTopic] = useState("");
@@ -259,6 +260,23 @@ const Index = () => {
       title: "Signed Out",
       description: "You have been signed out successfully.",
     });
+  };
+
+  const handleLoadSavedContent = (savedItem: any) => {
+    setTopic(savedItem.topic);
+    setGradeLevel(savedItem.grade_level);
+    setContent(savedItem.content);
+    setCitations(savedItem.citations || []);
+    setFontFamily(savedItem.font_family);
+    setFontSize(parseInt(savedItem.font_size) || 18);
+    
+    toast({
+      title: "Content Loaded",
+      description: "Your saved passage has been loaded.",
+    });
+    
+    // Scroll to top to see the loaded content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const gradeOptions = [
@@ -512,6 +530,8 @@ const Index = () => {
                 </CardContent>
               </Card>
             )}
+
+            <SavedContentList userId={user.id} onLoad={handleLoadSavedContent} />
           </>
         )}
       </div>
