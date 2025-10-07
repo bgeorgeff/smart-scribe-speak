@@ -11,6 +11,7 @@ import { FontSelector } from "@/components/FontSelector";
 import { InteractiveText } from "@/components/InteractiveText";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { Auth } from "@/components/Auth";
+import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
 
 const Index = () => {
@@ -25,6 +26,7 @@ const Index = () => {
   const [selectedText, setSelectedText] = useState("");
   const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const [isTranscribing, setIsTranscribing] = useState(false);
   
@@ -45,8 +47,13 @@ const Index = () => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      
+      // Check if this is a password recovery event
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsResettingPassword(true);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -268,6 +275,14 @@ const Index = () => {
     { value: "11", label: "11th Grade" },
     { value: "12", label: "12th Grade" },
   ];
+
+  if (isResettingPassword) {
+    return (
+      <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
+        <ResetPassword onComplete={() => setIsResettingPassword(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
