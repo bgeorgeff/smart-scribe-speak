@@ -40,7 +40,10 @@ serve(async (req) => {
                                topic.toLowerCase().includes('last') ||
                                topic.toLowerCase().includes('game') ||
                                topic.toLowerCase().includes('match') ||
-                               topic.toLowerCase().includes('event');
+                               topic.toLowerCase().includes('event') ||
+                               topic.toLowerCase().includes('right now') ||
+                               topic.toLowerCase().includes('live') ||
+                               topic.toLowerCase().includes('score');
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
@@ -284,6 +287,10 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
     ? `\n\nUse these actual sources from the research (you MUST include these exact URLs in your SOURCES section):\n${actualSources.map((s, i) => `${i + 1}. ${s.title} - ${s.url}`).join('\n')}`
     : '';
 
+  const isLiveQuery = topic.toLowerCase().includes('right now') || 
+                     topic.toLowerCase().includes('live') || 
+                     (topic.toLowerCase().includes('current') && topic.toLowerCase().includes('score'));
+
   const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
 
 ${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. Today's date is ${currentDate.toLocaleDateString('en-US', { 
@@ -292,10 +299,10 @@ ${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRE
     day: 'numeric', 
     year: 'numeric',
     timeZone: userTimezone
-  })}. You MUST:
+  })}. ${isLiveQuery ? 'The user is asking about a LIVE or IN-PROGRESS event. If the search results do not contain live scores or information about a game happening RIGHT NOW, you MUST clearly explain that you cannot access real-time live scores and suggest checking live sports websites.' : ''} You MUST:
 1. Use ONLY the information from the web search results provided
 2. DO NOT use your training data for current events, live games, or recent information
-3. Check if the game/event dates in the search results match the requested date (today, this week, etc.)
+3. ${isLiveQuery ? 'If this is a "right now" or "live" query and the search results do not show a game in progress, clearly state that there is no live game happening right now' : 'Check if the game/event dates in the search results match the requested date (today, this week, etc.)'}
 4. If NO game is scheduled for the requested date, clearly state "There is no [team] game scheduled for [date]" and explain when the most recent game was
 5. NEVER present past games as if they happened on the requested date
 6. Always include the actual date of the game you're discussing` : ''}
