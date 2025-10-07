@@ -62,6 +62,38 @@ export const Auth = () => {
     setLoading(false);
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`,
+    });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Check Your Email",
+        description: "We've sent you a password reset link.",
+      });
+    }
+
+    setLoading(false);
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -96,6 +128,15 @@ export const Auth = () => {
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Signing In..." : "Sign In"}
+              </Button>
+              <Button 
+                type="button" 
+                variant="link" 
+                onClick={handleForgotPassword}
+                disabled={loading}
+                className="w-full"
+              >
+                Forgot Password?
               </Button>
             </form>
           </TabsContent>
