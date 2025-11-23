@@ -321,16 +321,18 @@ Content requirements:
 3. Use headings to organize main topics
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
-6. Write in an engaging, friendly tone
-7. At the end, add a "SOURCES:" section with the provided source URLs${currentInfoNote}
+6. Write in an engaging, friendly tone${actualSources.length > 0 ? `
+7. At the end, add a "SOURCES:" section with the provided source URLs` : ''}${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
-
+${actualSources.length > 0 ? `
 SOURCES:
 1. [Source name] - [URL]
 2. [Source name] - [URL]
-...${sourcesNote}`;
+...${sourcesNote}` : `
+
+IMPORTANT: Do NOT include a SOURCES section since no verified web sources are available for this topic.`}`;
 
   const currentInfoUserNote = requiresCurrentInfo
     ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, scores, results, and the most current information available from the research. If the topic asks for "most recent" or "latest", the information MUST be from ${currentDate.getFullYear()}.`
@@ -341,8 +343,9 @@ SOURCES:
 ${researchInfo}
 
 Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}
-
-IMPORTANT: In your SOURCES section, you MUST use the exact URLs provided above. Do not make up or generalize URLs.`;
+${actualSources.length > 0 ? `
+IMPORTANT: In your SOURCES section, you MUST use the exact URLs provided above. Do not make up or generalize URLs.` : `
+IMPORTANT: Do NOT include a SOURCES section or any URLs. No verified web sources are available for this topic.`}`;
 
   return { systemPrompt, userPrompt };
 }
