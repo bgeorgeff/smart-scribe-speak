@@ -308,10 +308,10 @@ const Index = () => {
       <div className="max-w-5xl mx-auto space-y-10">
         <header className="text-center space-y-6 py-12">
           <h1 className="text-6xl md:text-7xl font-bold text-foreground animate-fade-in leading-tight">
-            Learn <span className="text-primary italic">to Read by Reading to Learn</span>
+            Learn <span className="text-primary italic">anything</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">
-            AI-powered educational content tailored to any grade level with dyslexia-friendly reading tools
+            Learn to Read by Reading to Learn
           </p>
           {user && (
             <div className="flex justify-center items-center gap-2 text-sm">
