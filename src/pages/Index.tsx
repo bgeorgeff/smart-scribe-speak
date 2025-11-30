@@ -14,6 +14,7 @@ import { Auth } from "@/components/Auth";
 import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
 import { SavedContentList } from "@/components/SavedContentList";
+import type { User, SavedContent } from "@/types";
 
 const Index = () => {
   const [topic, setTopic] = useState("");
@@ -25,7 +26,7 @@ const Index = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedText, setSelectedText] = useState("");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
@@ -262,13 +263,13 @@ const Index = () => {
     });
   };
 
-  const handleLoadSavedContent = (savedItem: any) => {
+  const handleLoadSavedContent = (savedItem: SavedContent) => {
     setTopic(savedItem.topic);
     setGradeLevel(savedItem.grade_level);
     setContent(savedItem.content);
     setCitations(savedItem.citations || []);
-    setFontFamily(savedItem.font_family);
-    setFontSize(parseInt(savedItem.font_size) || 18);
+    setFontFamily(savedItem.font_family || "dyslexic-arial");
+    setFontSize(savedItem.font_size ? parseInt(savedItem.font_size) : 18);
     
     toast({
       title: "Content Loaded",

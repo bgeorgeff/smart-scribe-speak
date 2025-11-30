@@ -18,11 +18,33 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    if (!topic || !gradeLevel) {
-      throw new Error("Topic and grade level are required");
+    // Input validation
+    if (!topic || typeof topic !== 'string') {
+      throw new Error("Topic is required and must be a string");
     }
 
-    console.log(`Generating content for topic: ${topic}, grade: ${gradeLevel}`);
+    if (!gradeLevel || typeof gradeLevel !== 'string') {
+      throw new Error("Grade level is required and must be a string");
+    }
+
+    // Validate grade level is a number between 1 and 12
+    const grade = parseInt(gradeLevel);
+    if (isNaN(grade) || grade < 1 || grade > 12) {
+      throw new Error("Grade level must be a number between 1 and 12");
+    }
+
+    // Validate topic length (max 500 characters)
+    if (topic.length > 500) {
+      throw new Error("Topic must be less than 500 characters");
+    }
+
+    // Validate and sanitize topic to prevent injection
+    const sanitizedTopic = topic.trim();
+    if (sanitizedTopic.length === 0) {
+      throw new Error("Topic cannot be empty or only whitespace");
+    }
+
+    console.log(`Generating content for topic: ${sanitizedTopic}, grade: ${gradeLevel}`);
     
     // Use user's local date if provided, otherwise fall back to server date
     const currentDate = userDate ? new Date(userDate) : new Date();
@@ -30,20 +52,20 @@ serve(async (req) => {
     console.log(`User timezone: ${userTimezone || 'UTC'}`);
 
     // Determine if the topic requires current, up-to-date information
-    const requiresCurrentInfo = topic.toLowerCase().includes('recent') || 
-                               topic.toLowerCase().includes('latest') || 
-                               topic.toLowerCase().includes('current') ||
-                               topic.toLowerCase().includes('today') ||
-                               topic.toLowerCase().includes('this week') ||
-                               topic.toLowerCase().includes('this month') ||
-                               topic.toLowerCase().includes('this year') ||
-                               topic.toLowerCase().includes('last') ||
-                               topic.toLowerCase().includes('game') ||
-                               topic.toLowerCase().includes('match') ||
-                               topic.toLowerCase().includes('event') ||
-                               topic.toLowerCase().includes('right now') ||
-                               topic.toLowerCase().includes('live') ||
-                               topic.toLowerCase().includes('score');
+    const requiresCurrentInfo = sanitizedTopic.toLowerCase().includes('recent') || 
+                               sanitizedTopic.toLowerCase().includes('latest') || 
+                               sanitizedTopic.toLowerCase().includes('current') ||
+                               sanitizedTopic.toLowerCase().includes('today') ||
+                               sanitizedTopic.toLowerCase().includes('this week') ||
+                               sanitizedTopic.toLowerCase().includes('this month') ||
+                               sanitizedTopic.toLowerCase().includes('this year') ||
+                               sanitizedTopic.toLowerCase().includes('last') ||
+                               sanitizedTopic.toLowerCase().includes('game') ||
+                               sanitizedTopic.toLowerCase().includes('match') ||
+                               sanitizedTopic.toLowerCase().includes('event') ||
+                               sanitizedTopic.toLowerCase().includes('right now') ||
+                               sanitizedTopic.toLowerCase().includes('live') ||
+                               sanitizedTopic.toLowerCase().includes('score');
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
@@ -52,7 +74,7 @@ serve(async (req) => {
 
     if (requiresCurrentInfo) {
       // Perform actual web search for current information
-      console.log(`Searching web for: ${topic}`);
+      console.log(`Searching web for: ${sanitizedTopic}`);
       
       // Enhance search query with user's local date for "today" queries
       const todayFormatted = currentDate.toLocaleDateString('en-US', { 
@@ -67,12 +89,12 @@ serve(async (req) => {
         year: 'numeric',
         timeZone: userTimezone || 'UTC'
       });
-      const isTodayQuery = topic.toLowerCase().includes('today');
+      const isTodayQuery = sanitizedTopic.toLowerCase().includes('today');
       
       // For today queries, add multiple date formats to improve search accuracy
       const searchQuery = isTodayQuery 
-        ? `${topic} "${todayFormatted}" OR "${todayShort}"` 
-        : topic;
+        ? `${sanitizedTopic} "${todayFormatted}" OR "${todayShort}"` 
+        : sanitizedTopic;
       
       console.log(`Enhanced search query: ${searchQuery}`);
       const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
@@ -162,7 +184,7 @@ serve(async (req) => {
     console.log('Actual sources found:', actualSources.length);
 
     // Generate grade-appropriate content based on research
-    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources, currentDate, userTimezone);
+    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, sanitizedTopic, researchInfo, requiresCurrentInfo, actualSources, currentDate, userTimezone);
 
     // If we have web search results, inject them directly into the user prompt with strict date requirements
     const todayFormatted = currentDate.toLocaleDateString('en-US', { 
@@ -227,7 +249,7 @@ serve(async (req) => {
         content,
         citations,
         gradeLevel,
-        topic
+        topic: sanitizedTopic
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

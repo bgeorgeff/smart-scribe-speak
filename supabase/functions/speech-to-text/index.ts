@@ -44,8 +44,20 @@ serve(async (req) => {
   try {
     const { audio } = await req.json();
     
-    if (!audio) {
+    // Input validation
+    if (!audio || typeof audio !== 'string') {
       throw new Error('No audio data provided');
+    }
+
+    // Validate audio data is base64 encoded (basic check)
+    if (!/^[A-Za-z0-9+/=]+$/.test(audio)) {
+      throw new Error('Invalid audio data format - must be base64 encoded');
+    }
+
+    // Limit audio size (max 25MB when base64 encoded)
+    const MAX_AUDIO_SIZE = 25 * 1024 * 1024;
+    if (audio.length > MAX_AUDIO_SIZE) {
+      throw new Error('Audio file too large - maximum 25MB');
     }
 
     console.log('Processing audio transcription...');
