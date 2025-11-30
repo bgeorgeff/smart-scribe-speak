@@ -113,5 +113,38 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        hsla(0, 0%, 0%, 0.02) 2px,
+        hsla(0, 0%, 0%, 0.02) 4px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        hsla(0, 0%, 0%, 0.02) 2px,
+        hsla(0, 0%, 0%, 0.02) 4px
+      );
+  }
+
+  .dark body {
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        hsla(0, 0%, 100%, 0.03) 2px,
+        hsla(0, 0%, 100%, 0.03) 4px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        hsla(0, 0%, 100%, 0.03) 2px,
+        hsla(0, 0%, 100%, 0.03) 4px
+      );
   }
 }
