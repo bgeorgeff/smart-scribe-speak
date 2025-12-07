@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { Volume2, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,11 +12,7 @@ interface InteractiveTextProps {
   isPlaying: boolean;
 }
 
-interface WordDefinition {
-  word: string;
-  definition: string;
-  syllables?: string[]; // For future syllable breakdown feature
-}
+// Removed interface WordDefinition and related states/functions
 
 export const InteractiveText = ({
   content,
@@ -29,40 +24,13 @@ export const InteractiveText = ({
 }: InteractiveTextProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
-  const [selectedWordDef, setSelectedWordDef] = useState<WordDefinition | null>(null);
-  const [popupPosition, setPopupPosition] = useState<{ top: number; left: number } | null>(null);
-  const [isLoadingDef, setIsLoadingDef] = useState(false);
-  const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+  // Removed selectedWordDef, popupPosition, isLoadingDef, speechSynthRef states
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      speechSynthRef.current = window.speechSynthesis;
-    }
-  }, []);
+  // Removed useEffect for speech synthesis initialization
+  // Removed useEffect for handling clicks outside the popup
 
-  useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      const selectedText = selection?.toString().trim() || "";
-      onTextSelection(selectedText);
-    };
-
-    document.addEventListener('selectionchange', handleSelection);
-    return () => document.removeEventListener('selectionchange', handleSelection);
-  }, [onTextSelection]);
-
-  const fetchDefinition = async (word: string): Promise<string> => {
-    try {
-      const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
-      if (!response.ok) throw new Error('Definition not found');
-      
-      const data = await response.json();
-      const firstMeaning = data[0]?.meanings[0]?.definitions[0]?.definition;
-      return firstMeaning || 'Definition not available';
-    } catch (error) {
-      return 'Definition not available for this word';
-    }
-  };
+  // Removed fetchDefinition function
+  // Removed speakDefinition function
 
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
@@ -74,74 +42,15 @@ export const InteractiveText = ({
       setHighlightedWord(word);
       onWordClick(word);
       
-      // Calculate popup position
-      const rect = target.getBoundingClientRect();
-      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+      // Removed popup position calculation and setting
+      // Removed definition fetching and setting
       
-      // Center the popup horizontally on the word
-      const popupLeft = rect.left + scrollLeft + (rect.width / 2);
-      
-      const position = {
-        top: rect.bottom + scrollTop + 8,
-        left: popupLeft
-      };
-      
-      console.log('Setting popup position:', position);
-      setPopupPosition(position);
-
-      // Fetch definition
-      setIsLoadingDef(true);
-      console.log('Fetching definition for:', word);
-      const definition = await fetchDefinition(word.toLowerCase());
-      console.log('Definition received:', definition);
-      
-      const wordDef = {
-        word: word,
-        definition: definition,
-        syllables: [] // Placeholder for future syllable data
-      };
-      
-      console.log('Setting word definition:', wordDef);
-      setSelectedWordDef(wordDef);
-      setIsLoadingDef(false);
-      
-      // Remove highlight after speaking
+      // Remove highlight after a delay
       setTimeout(() => setHighlightedWord(null), 2000);
     }
   };
 
-  const speakDefinition = () => {
-    if (!speechSynthRef.current || !selectedWordDef) return;
-
-    speechSynthRef.current.cancel();
-    const textToSpeak = `${selectedWordDef.word}. ${selectedWordDef.definition}`;
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.rate = 0.8;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    speechSynthRef.current.speak(utterance);
-  };
-
-  const closePopup = () => {
-    setSelectedWordDef(null);
-    setPopupPosition(null);
-  };
-
-  // Close popup when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (selectedWordDef && !(e.target as HTMLElement).closest('.definition-popup')) {
-        closePopup();
-      }
-    };
-
-    if (selectedWordDef) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [selectedWordDef]);
+  // Removed closePopup function
 
   const renderInteractiveContent = (text: string) => {
     // Remove markdown bold formatting (** or __)
@@ -207,74 +116,7 @@ export const InteractiveText = ({
         })}
       </div>
 
-      {/* Definition Popup */}
-      {selectedWordDef && popupPosition && (
-        <div 
-          className="fixed inset-0 z-[9998] print:hidden" 
-          onClick={closePopup}
-          style={{ pointerEvents: 'auto' }}
-        >
-          <div 
-            className="definition-popup absolute bg-white dark:bg-gray-900 rounded-lg shadow-2xl border-2 border-primary p-4 max-w-sm"
-            style={{
-              top: `${popupPosition.top}px`,
-              left: `${popupPosition.left}px`,
-              transform: 'translateX(-50%)',
-              pointerEvents: 'auto',
-              zIndex: 9999,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="space-y-3">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="font-bold text-lg text-primary capitalize">
-                  {selectedWordDef.word}
-                </h3>
-                <Button
-                  onClick={closePopup}
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {isLoadingDef ? (
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm">Loading definition...</span>
-                </div>
-              ) : (
-                <>
-                  <p className="text-sm text-foreground leading-relaxed">
-                    {selectedWordDef.definition}
-                  </p>
-                  
-                  {/* Placeholder for future syllable breakdown */}
-                  {selectedWordDef.syllables && selectedWordDef.syllables.length > 0 && (
-                    <div className="pt-2 border-t">
-                      <p className="text-xs text-muted-foreground">
-                        Syllables: {selectedWordDef.syllables.join(' · ')}
-                      </p>
-                    </div>
-                  )}
-                  
-                  <Button
-                    onClick={speakDefinition}
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-2"
-                  >
-                    <Volume2 className="h-4 w-4 mr-2" />
-                    Listen to Definition
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed Definition Popup JSX */}
     </div>
   );
 };
