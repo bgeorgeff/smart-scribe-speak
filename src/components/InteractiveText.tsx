@@ -37,14 +37,15 @@ export const InteractiveText = ({
     // Strip punctuation from both beginning and end, but keep apostrophes for contractions
     const word = target.textContent?.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '') || "";
 
-    // Normalize all types of apostrophes to straight apostrophe BEFORE regex validation
-    // This is critical because the HTML might contain curly quotes that won't match the regex
-    const normalizedWord = word.replace(/[''`´]/g, "'");
-
-    console.log('Word clicked:', word, 'normalized:', normalizedWord);
-
-    // Now validate against the regex with normalized apostrophes
-    if (normalizedWord && /^[a-zA-Z']+$/.test(normalizedWord)) {
+    // Normalize all Unicode apostrophe variants to straight apostrophe
+    // Use a broader replacement to catch any apostrophe-like character
+    let normalizedWord = word.replace(/[\u0027\u2019\u2018\u0060\u00B4\u02BC]/g, "'");
+    
+    // Also strip any remaining leading/trailing whitespace or special chars
+    normalizedWord = normalizedWord.trim();
+    
+    // Only require that it has at least one letter (covers contractions like "it's")
+    if (normalizedWord && /[a-zA-Z]/.test(normalizedWord)) {
       setHighlightedWord(normalizedWord);
       onWordClick(normalizedWord);
 
