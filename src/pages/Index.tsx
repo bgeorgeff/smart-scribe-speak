@@ -15,6 +15,7 @@ import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
 import { SavedContentList } from "@/components/SavedContentList";
 import type { User, SavedContent } from "@/types";
+import { Progress } from "@/components/ui/progress";
 
 const Index = () => {
   const [topic, setTopic] = useState("");
@@ -24,6 +25,7 @@ const Index = () => {
   const [content, setContent] = useState("");
   const [citations, setCitations] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedText, setSelectedText] = useState("");
   const [user, setUser] = useState<User>(null);
@@ -31,7 +33,7 @@ const Index = () => {
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const [isTranscribing, setIsTranscribing] = useState(false);
-  
+
   const { toast } = useToast();
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
 
@@ -51,7 +53,7 @@ const Index = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
-      
+
       // Check if this is a password recovery event
       if (event === 'PASSWORD_RECOVERY') {
         setIsResettingPassword(true);
@@ -78,11 +80,20 @@ const Index = () => {
     setIsGenerating(true);
     setContent("");
     setCitations([]);
+    setProgress(0);
+
+    // Simulate progress increments
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 10;
+      });
+    }, 200);
 
     try {
       const userDate = new Date();
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      
+
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
         body: { 
           topic: topic.trim(), 
@@ -94,9 +105,10 @@ const Index = () => {
 
       if (error) throw error;
 
+      setProgress(100);
       setContent(data.content);
       setCitations(data.citations || []);
-      
+
       toast({
         title: "Content Generated!",
         description: "Your educational content is ready to read.",
@@ -110,6 +122,7 @@ const Index = () => {
       });
     } finally {
       setIsGenerating(false);
+      setTimeout(() => setProgress(0), 500);
     }
   };
 
@@ -150,7 +163,7 @@ const Index = () => {
       try {
         setIsTranscribing(true);
         const audioData = await stopRecording();
-        
+
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
           body: { audio: audioData }
         });
@@ -270,12 +283,12 @@ const Index = () => {
     setCitations(savedItem.citations || []);
     setFontFamily(savedItem.font_family || "dyslexic-arial");
     setFontSize(savedItem.font_size ? parseInt(savedItem.font_size) : 18);
-    
+
     toast({
       title: "Content Loaded",
       description: "Your saved passage has been loaded.",
     });
-    
+
     // Scroll to top to see the loaded content
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -363,7 +376,7 @@ const Index = () => {
                       </Button>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Grade Level</label>
                     <Select value={gradeLevel} onValueChange={setGradeLevel}>
@@ -383,7 +396,7 @@ const Index = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FontSelector value={fontFamily} onChange={setFontFamily} />
-                  
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
                       Font Size: {fontSize}px
@@ -421,6 +434,16 @@ const Index = () => {
                     </span>
                   </Button>
                 </div>
+
+                {isGenerating && (
+                  <div className="space-y-2 p-4 bg-primary/10 rounded-lg">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+                      <span className="text-primary font-medium">Generating Content...</span>
+                    </div>
+                    <Progress value={progress} className="w-full" />
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -516,7 +539,7 @@ const Index = () => {
                     {citations.map((citation, index) => {
                       const urlRegex = /(https?:\/\/[^\s]+)/g;
                       const parts = citation.split(urlRegex);
-                      
+
                       return (
                         <li key={index} className="text-sm text-muted-foreground">
                           {parts.map((part, partIndex) => {
