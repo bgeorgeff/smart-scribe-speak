@@ -45,8 +45,11 @@ export const InteractiveText = ({
   };
 
   const renderInteractiveContent = (text: string) => {
+    // Remove markdown bold formatting (** or __)
+    const cleanedText = text.replace(/\*\*/g, '').replace(/__/g, '');
+    
     // Split text into words while preserving spaces and punctuation
-    const words = text.split(/(\s+|[.,!?;:])/);
+    const words = cleanedText.split(/(\s+|[.,!?;:])/);
     
     return words.map((word, index) => {
       const isWord = /[a-zA-Z]/.test(word);
