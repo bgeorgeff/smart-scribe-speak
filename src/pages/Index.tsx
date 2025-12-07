@@ -417,22 +417,24 @@ const Index = () => {
 
             {content && (
               <>
-                <ContentToolbar
-                  fontFamily={fontFamily}
-                  fontSize={fontSize}
-                  onFontFamilyChange={setFontFamily}
-                  onFontSizeChange={setFontSize}
-                  onSave={handleSaveContent}
-                  onPrint={handlePrintContent}
-                  isSaving={isSaving}
-                />
+                <div className="print:hidden">
+                  <ContentToolbar
+                    fontFamily={fontFamily}
+                    fontSize={fontSize}
+                    onFontFamilyChange={setFontFamily}
+                    onFontSizeChange={setFontSize}
+                    onSave={handleSaveContent}
+                    onPrint={handlePrintContent}
+                    isSaving={isSaving}
+                  />
+                </div>
 
-                <Card className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none">
-                  <CardHeader className="flex flex-row items-center justify-between print:pb-2">
+                <Card className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none">
+                  <CardHeader className="flex flex-row items-center justify-between print:hidden">
                     <CardTitle className="text-2xl text-foreground font-semibold">
                       Generated Content
                     </CardTitle>
-                    <div className="flex items-center gap-3 print:hidden">
+                    <div className="flex items-center gap-3">
                       <div className="flex items-center gap-2">
                         <label className="text-sm text-muted-foreground">Change Grade:</label>
                         <Select value={gradeLevel} onValueChange={(newGrade) => {
@@ -494,7 +496,7 @@ const Index = () => {
             )}
 
             {citations.length > 0 && (
-              <Card className="bg-card border-border/50 shadow-elegant animate-fade-in print:break-before-page">
+              <Card className="bg-card border-border/50 shadow-elegant animate-fade-in print:hidden">
                 <CardHeader>
                   <CardTitle className="text-xl text-foreground font-semibold">
                     Sources & Citations
