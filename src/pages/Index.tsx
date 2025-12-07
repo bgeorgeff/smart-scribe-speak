@@ -36,6 +36,7 @@ const Index = () => {
 
   const { toast } = useToast();
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
+  const contentCardRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -99,13 +100,15 @@ const Index = () => {
       setContent(data.content);
       setCitations(data.citations || []);
 
-      // Scroll to top to show the generated content
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-
       toast({
         title: "Content Generated!",
         description: "Your educational content is ready to read.",
       });
+
+      // Scroll to the generated content after a brief delay to ensure rendering
+      setTimeout(() => {
+        contentCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     } catch (error) {
       console.error('Error generating content:', error);
       toast({
@@ -276,13 +279,15 @@ const Index = () => {
     setFontFamily(savedItem.font_family || "dyslexic-arial");
     setFontSize(savedItem.font_size ? parseInt(savedItem.font_size) : 18);
 
-    // Scroll to top to see the loaded content
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
     toast({
       title: "Content Loaded",
       description: "Your saved passage has been loaded.",
     });
+
+    // Scroll to the loaded content after a brief delay to ensure rendering
+    setTimeout(() => {
+      contentCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const gradeOptions = [
@@ -438,7 +443,7 @@ const Index = () => {
                   />
                 </div>
 
-                <Card className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none">
+                <Card ref={contentCardRef} className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none">
                   <CardHeader className="flex flex-row items-center justify-between print:hidden">
                     <CardTitle className="text-2xl text-foreground font-semibold">
                       Generated Content
