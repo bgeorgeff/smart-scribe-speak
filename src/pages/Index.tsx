@@ -127,91 +127,10 @@ const Index = () => {
     speechSynthRef.current.cancel();
 
     // Normalize curly apostrophes to straight apostrophes
-    let processedText = text.replace(/'/g, "'");
-    
-    // Expand common contractions for better TTS pronunciation
-    const contractions: Record<string, string> = {
-      "it's": "it is",
-      "It's": "It is",
-      "don't": "do not",
-      "Don't": "Do not",
-      "doesn't": "does not",
-      "Doesn't": "Does not",
-      "didn't": "did not",
-      "Didn't": "Did not",
-      "can't": "cannot",
-      "Can't": "Cannot",
-      "couldn't": "could not",
-      "Couldn't": "Could not",
-      "won't": "will not",
-      "Won't": "Will not",
-      "wouldn't": "would not",
-      "Wouldn't": "Would not",
-      "shouldn't": "should not",
-      "Shouldn't": "Should not",
-      "haven't": "have not",
-      "Haven't": "Have not",
-      "hasn't": "has not",
-      "Hasn't": "Has not",
-      "aren't": "are not",
-      "Aren't": "Are not",
-      "isn't": "is not",
-      "Isn't": "Is not",
-      "wasn't": "was not",
-      "Wasn't": "Was not",
-      "weren't": "were not",
-      "Weren't": "Were not",
-      "i'm": "I am",
-      "I'm": "I am",
-      "he's": "he is",
-      "He's": "He is",
-      "she's": "she is",
-      "She's": "She is",
-      "we're": "we are",
-      "We're": "We are",
-      "they're": "they are",
-      "They're": "They are",
-      "you're": "you are",
-      "You're": "You are",
-      "i've": "I have",
-      "I've": "I have",
-      "you've": "you have",
-      "You've": "You have",
-      "we've": "we have",
-      "We've": "We have",
-      "they've": "they have",
-      "They've": "They have",
-      "i'll": "I will",
-      "I'll": "I will",
-      "he'll": "he will",
-      "He'll": "He will",
-      "she'll": "she will",
-      "She'll": "She will",
-      "we'll": "we will",
-      "We'll": "We will",
-      "they'll": "they will",
-      "They'll": "They will",
-      "you'll": "you will",
-      "You'll": "You will",
-      "that's": "that is",
-      "That's": "That is",
-      "there's": "there is",
-      "There's": "There is",
-      "what's": "what is",
-      "What's": "What is",
-      "who's": "who is",
-      "Who's": "Who is",
-      "where's": "where is",
-      "Where's": "Where is",
-    };
+    const normalizedText = text.replace(/'/g, "'");
 
-    // Replace contractions
-    Object.keys(contractions).forEach(contraction => {
-      const regex = new RegExp('\\b' + contraction + '\\b', 'g');
-      processedText = processedText.replace(regex, contractions[contraction]);
-    });
-
-    const utterance = new SpeechSynthesisUtterance(processedText);
+    const utterance = new SpeechSynthesisUtterance(normalizedText);
+    utterance.lang = 'en-US';
     utterance.rate = 0.8;
     utterance.pitch = 1;
     utterance.volume = 1;
