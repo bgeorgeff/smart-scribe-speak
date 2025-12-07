@@ -34,11 +34,13 @@ export const InteractiveText = ({
 
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
-    const word = target.textContent?.trim().replace(/[.,!?;:]/g, '') || "";
+    // Strip punctuation from both beginning and end, but keep apostrophes for contractions
+    const word = target.textContent?.trim().replace(/^[.,!?;:"'"]+|[.,!?;:"'"]+$/g, '') || "";
 
     console.log('Word clicked:', word);
 
-    if (word && /^[a-zA-Z]+$/.test(word)) {
+    // Allow words with apostrophes for contractions like "it's"
+    if (word && /^[a-zA-Z']+$/.test(word)) {
       setHighlightedWord(word);
       onWordClick(word);
 

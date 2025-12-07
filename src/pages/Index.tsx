@@ -147,12 +147,12 @@ const Index = () => {
 
   const playSelectedText = () => {
     if (selectedText.trim()) {
-      // Remove quotation marks from selected text
-      const cleanedSelection = selectedText.replace(/["'"']/g, '');
+      // Remove quotation marks but preserve apostrophes in contractions
+      const cleanedSelection = selectedText.replace(/[""]/g, '').replace(/'/g, "'");
       speakText(cleanedSelection);
     } else if (content.trim()) {
-      // Remove markdown heading symbols and quotation marks before speaking
-      const cleanedContent = content.replace(/^#+\s*/gm, '').replace(/["'"']/g, '');
+      // Remove markdown heading symbols and quotation marks, but preserve apostrophes
+      const cleanedContent = content.replace(/^#+\s*/gm, '').replace(/[""]/g, '').replace(/'/g, "'");
       speakText(cleanedContent);
     }
   };
