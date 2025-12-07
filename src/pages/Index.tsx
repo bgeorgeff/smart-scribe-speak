@@ -399,21 +399,28 @@ const Index = () => {
                   </div>
                 </div>
 
-                <Button
-                  onClick={generateContent}
-                  disabled={isGenerating || !topic.trim() || !gradeLevel}
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
-                  size="lg"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Generating Content...
-                    </>
-                  ) : (
-                    "Generate Educational Content"
-                  )}
-                </Button>
+                <div className="relative w-full">
+                  <Button
+                    onClick={generateContent}
+                    disabled={isGenerating || !topic.trim() || !gradeLevel}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium relative overflow-hidden"
+                    size="lg"
+                  >
+                    {isGenerating && (
+                      <div className="absolute inset-0 bg-primary-foreground/20 animate-progress-bar" />
+                    )}
+                    <span className="relative z-10">
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin inline-block" />
+                          Generating Content...
+                        </>
+                      ) : (
+                        "Generate Educational Content"
+                      )}
+                    </span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
