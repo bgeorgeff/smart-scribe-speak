@@ -420,7 +420,10 @@ const Index = () => {
                     size="lg"
                   >
                     {isGenerating && (
-                      <div className="absolute inset-0 bg-primary-foreground/20 animate-progress-bar" />
+                      <div 
+                        className="absolute inset-0 bg-primary-foreground/30 transition-all duration-300" 
+                        style={{ width: `${progress}%` }}
+                      />
                     )}
                     <span className="relative z-10">
                       {isGenerating ? (
@@ -434,16 +437,6 @@ const Index = () => {
                     </span>
                   </Button>
                 </div>
-
-                {isGenerating && (
-                  <div className="space-y-2 p-4 bg-primary/10 rounded-lg">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-                      <span className="text-primary font-medium">Generating Content...</span>
-                    </div>
-                    <Progress value={progress} className="w-full" />
-                  </div>
-                )}
               </CardContent>
             </Card>
 
