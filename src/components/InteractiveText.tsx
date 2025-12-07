@@ -77,9 +77,12 @@ export const InteractiveText = ({
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
       
+      // Center the popup horizontally on the word
+      const popupLeft = rect.left + scrollLeft + (rect.width / 2);
+      
       setPopupPosition({
-        top: rect.bottom + scrollTop + 5,
-        left: rect.left + scrollLeft
+        top: rect.bottom + scrollTop + 8,
+        left: popupLeft
       });
 
       // Fetch definition
@@ -182,10 +185,11 @@ export const InteractiveText = ({
       {/* Definition Popup */}
       {selectedWordDef && popupPosition && (
         <Card 
-          className="fixed z-50 shadow-lg border-2 border-primary/20 max-w-sm print:hidden"
+          className="fixed z-[9999] shadow-xl border-2 border-primary/20 max-w-sm bg-background print:hidden"
           style={{
             top: `${popupPosition.top}px`,
             left: `${popupPosition.left}px`,
+            transform: 'translateX(-50%)',
           }}
         >
           <div className="p-4 space-y-3">
