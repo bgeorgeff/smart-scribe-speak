@@ -99,6 +99,9 @@ const Index = () => {
       setContent(data.content);
       setCitations(data.citations || []);
 
+      // Scroll to top to show the generated content
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
       toast({
         title: "Content Generated!",
         description: "Your educational content is ready to read.",
@@ -273,13 +276,13 @@ const Index = () => {
     setFontFamily(savedItem.font_family || "dyslexic-arial");
     setFontSize(savedItem.font_size ? parseInt(savedItem.font_size) : 18);
 
+    // Scroll to top to see the loaded content
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
     toast({
       title: "Content Loaded",
       description: "Your saved passage has been loaded.",
     });
-
-    // Scroll to top to see the loaded content
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const gradeOptions = [
