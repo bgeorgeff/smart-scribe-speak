@@ -126,7 +126,10 @@ const Index = () => {
 
     speechSynthRef.current.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Normalize curly apostrophes to straight apostrophes for TTS
+    const normalizedText = text.replace(/'/g, "'");
+
+    const utterance = new SpeechSynthesisUtterance(normalizedText);
     utterance.rate = 0.8;
     utterance.pitch = 1;
     utterance.volume = 1;
