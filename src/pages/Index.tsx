@@ -343,7 +343,7 @@ const Index = () => {
                     <label className="text-sm font-medium">Topic</label>
                     <div className="flex gap-2">
                       <Input
-                        placeholder="e.g., how to throw a football spiral, Solar System, Photosynthesis"
+                        placeholder="e.g., how to throw a football spiral, photosynthesis, World War II"
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         className="w-full"
