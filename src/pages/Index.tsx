@@ -126,10 +126,9 @@ const Index = () => {
 
     speechSynthRef.current.cancel();
 
-    // Normalize all types of apostrophes to straight apostrophe
-    const normalizedText = text.replace(/[''`]/g, "'");
-    
-    console.log('speakText input:', text, 'normalized:', normalizedText);
+    // Normalize apostrophes and convert to lowercase for TTS compatibility
+    // The Web Speech API has issues with uppercase text, especially contractions like "It's"
+    const normalizedText = text.replace(/[''`]/g, "'").toLowerCase();
 
     const utterance = new SpeechSynthesisUtterance(normalizedText);
     utterance.lang = 'en-US';
@@ -137,35 +136,19 @@ const Index = () => {
     utterance.pitch = 1;
     utterance.volume = 1;
 
-    // Try to select the best available voice for English
+    // Select the best available voice for English
     const voices = speechSynthRef.current.getVoices();
-    console.log('Available voices:', voices.length);
     if (voices.length > 0) {
-      // Prefer a Google or native voice
-      const preferredVoice = voices.find(v => 
-        v.lang.startsWith('en-US') && !v.name.includes('Google')
-      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-      
+      const preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
       if (preferredVoice) {
-        console.log('Selected voice:', preferredVoice.name);
         utterance.voice = preferredVoice;
       }
     }
 
-    utterance.onstart = () => {
-      console.log('Speech started');
-      setIsPlaying(true);
-    };
-    utterance.onend = () => {
-      console.log('Speech ended');
-      setIsPlaying(false);
-    };
-    utterance.onerror = (e) => {
-      console.log('Speech error:', e);
-      setIsPlaying(false);
-    };
+    utterance.onstart = () => setIsPlaying(true);
+    utterance.onend = () => setIsPlaying(false);
+    utterance.onerror = () => setIsPlaying(false);
 
-    console.log('Calling speak with:', utterance.text);
     speechSynthRef.current.speak(utterance);
   };
 
