@@ -35,12 +35,11 @@ export const InteractiveText = ({
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
     // Strip punctuation from both beginning and end, but keep apostrophes for contractions
-    const word = target.textContent?.trim().replace(/^[.,!?;:"'"]+|[.,!?;:"'"]+$/g, '') || "";
+    const word = target.textContent?.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '') || "";
 
     console.log('Word clicked:', word);
 
-    // Allow words with apostrophes for contractions like "it's" or "It's"
-    // Also normalize curly apostrophes to straight apostrophes
+    // Normalize curly apostrophes to straight apostrophes
     const normalizedWord = word.replace(/'/g, "'");
 
     if (normalizedWord && /^[a-zA-Z']+$/.test(normalizedWord)) {
