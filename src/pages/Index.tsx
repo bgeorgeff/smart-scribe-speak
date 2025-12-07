@@ -80,15 +80,6 @@ const Index = () => {
     setIsGenerating(true);
     setContent("");
     setCitations([]);
-    setProgress(0);
-
-    // Simulate progress increments
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90) return prev;
-        return prev + 10;
-      });
-    }, 200);
 
     try {
       const userDate = new Date();
@@ -105,7 +96,6 @@ const Index = () => {
 
       if (error) throw error;
 
-      setProgress(100);
       setContent(data.content);
       setCitations(data.citations || []);
 
@@ -122,7 +112,6 @@ const Index = () => {
       });
     } finally {
       setIsGenerating(false);
-      setTimeout(() => setProgress(0), 500);
     }
   };
 
@@ -416,25 +405,17 @@ const Index = () => {
                   <Button
                     onClick={generateContent}
                     disabled={isGenerating || !topic.trim() || !gradeLevel}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium relative overflow-hidden"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
                     size="lg"
                   >
-                    {isGenerating && (
-                      <div 
-                        className="absolute inset-0 bg-primary-foreground/30 transition-all duration-300" 
-                        style={{ width: `${progress}%` }}
-                      />
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin inline-block" />
+                        Generating Content...
+                      </>
+                    ) : (
+                      "Generate Educational Content"
                     )}
-                    <span className="relative z-10">
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin inline-block" />
-                          Generating Content...
-                        </>
-                      ) : (
-                        "Generate Educational Content"
-                      )}
-                    </span>
                   </Button>
                 </div>
               </CardContent>
