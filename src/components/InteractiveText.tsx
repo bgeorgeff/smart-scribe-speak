@@ -39,13 +39,13 @@ export const InteractiveText = ({
 
     console.log('Word clicked:', word);
 
-    // Allow words with apostrophes for contractions like "it's"
-    if (word && /^[a-zA-Z']+$/.test(word)) {
-      setHighlightedWord(word);
-      onWordClick(word);
+    // Allow words with apostrophes for contractions like "it's" or "It's"
+    // Also normalize curly apostrophes to straight apostrophes
+    const normalizedWord = word.replace(/'/g, "'");
 
-      // Removed popup position calculation and setting
-      // Removed definition fetching and setting
+    if (normalizedWord && /^[a-zA-Z']+$/.test(normalizedWord)) {
+      setHighlightedWord(normalizedWord);
+      onWordClick(normalizedWord);
 
       // Remove highlight after a delay
       setTimeout(() => setHighlightedWord(null), 2000);
