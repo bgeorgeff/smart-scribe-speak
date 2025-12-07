@@ -118,6 +118,20 @@ export const InteractiveText = ({
     setPopupPosition(null);
   };
 
+  // Close popup when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectedWordDef && !(e.target as HTMLElement).closest('.definition-popup')) {
+        closePopup();
+      }
+    };
+
+    if (selectedWordDef) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [selectedWordDef]);
+
   const renderInteractiveContent = (text: string) => {
     // Remove markdown bold formatting (** or __)
     const cleanedText = text.replace(/\*\*/g, '').replace(/__/g, '');
@@ -184,14 +198,21 @@ export const InteractiveText = ({
 
       {/* Definition Popup */}
       {selectedWordDef && popupPosition && (
-        <Card 
-          className="fixed z-[9999] shadow-xl border-2 border-primary/20 max-w-sm bg-background print:hidden"
-          style={{
-            top: `${popupPosition.top}px`,
-            left: `${popupPosition.left}px`,
-            transform: 'translateX(-50%)',
-          }}
-        >
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-[9998] print:hidden" 
+            onClick={closePopup}
+          />
+          {/* Popup */}
+          <Card 
+            className="definition-popup fixed z-[9999] shadow-2xl border-2 border-primary max-w-sm bg-white dark:bg-gray-800 print:hidden"
+            style={{
+              top: `${popupPosition.top}px`,
+              left: `${popupPosition.left}px`,
+              transform: 'translateX(-50%)',
+            }}
+          >
           <div className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <h3 className="font-bold text-lg text-primary capitalize">
@@ -240,6 +261,7 @@ export const InteractiveText = ({
             )}
           </div>
         </Card>
+        </>
       )}
     </div>
   );
