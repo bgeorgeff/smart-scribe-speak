@@ -147,4 +147,11 @@ All colors MUST be HSL.
         hsla(0, 0%, 100%, 0.03) 4px
       );
   }
+
+  @media print {
+    body {
+      background: white !important;
+      background-image: none !important;
+    }
+  }
 }

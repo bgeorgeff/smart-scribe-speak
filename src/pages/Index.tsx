@@ -306,7 +306,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-10">
-        <header className="text-center space-y-6 py-12">
+        <header className="text-center space-y-6 py-12 print:hidden">
           <h1 className="text-6xl md:text-7xl font-bold text-foreground animate-fade-in leading-tight">
             Learn <span className="text-primary italic">anything</span>
           </h1>
@@ -324,10 +324,12 @@ const Index = () => {
         </header>
 
         {!user ? (
-          <Auth />
+          <div className="print:hidden">
+            <Auth />
+          </div>
         ) : (
           <>
-            <Card className="bg-card border-border/50 shadow-elegant">
+            <Card className="bg-card border-border/50 shadow-elegant print:hidden">
               <CardHeader>
                 <CardTitle className="text-2xl text-foreground font-semibold">
                   Content Settings
@@ -534,7 +536,9 @@ const Index = () => {
               </Card>
             )}
 
-            <SavedContentList userId={user.id} onLoad={handleLoadSavedContent} />
+            <div className="print:hidden">
+              <SavedContentList userId={user.id} onLoad={handleLoadSavedContent} />
+            </div>
           </>
         )}
       </div>
