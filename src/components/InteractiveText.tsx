@@ -39,8 +39,8 @@ export const InteractiveText = ({
 
     console.log('Word clicked:', word);
 
-    // Normalize curly apostrophes to straight apostrophes
-    const normalizedWord = word.replace(/'/g, "'");
+    // Normalize all types of apostrophes to straight apostrophe
+    const normalizedWord = word.replace(/[''`´]/g, "'");
 
     if (normalizedWord && /^[a-zA-Z']+$/.test(normalizedWord)) {
       setHighlightedWord(normalizedWord);

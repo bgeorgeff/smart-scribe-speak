@@ -126,8 +126,10 @@ const Index = () => {
 
     speechSynthRef.current.cancel();
 
-    // Normalize curly apostrophes to straight apostrophes
-    const normalizedText = text.replace(/'/g, "'");
+    // Normalize all types of apostrophes to straight apostrophe
+    const normalizedText = text.replace(/[''`]/g, "'");
+    
+    console.log('speakText input:', text, 'normalized:', normalizedText);
 
     const utterance = new SpeechSynthesisUtterance(normalizedText);
     utterance.lang = 'en-US';
@@ -137,6 +139,7 @@ const Index = () => {
 
     // Try to select the best available voice for English
     const voices = speechSynthRef.current.getVoices();
+    console.log('Available voices:', voices.length);
     if (voices.length > 0) {
       // Prefer a Google or native voice
       const preferredVoice = voices.find(v => 
@@ -144,14 +147,25 @@ const Index = () => {
       ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
       
       if (preferredVoice) {
+        console.log('Selected voice:', preferredVoice.name);
         utterance.voice = preferredVoice;
       }
     }
 
-    utterance.onstart = () => setIsPlaying(true);
-    utterance.onend = () => setIsPlaying(false);
-    utterance.onerror = () => setIsPlaying(false);
+    utterance.onstart = () => {
+      console.log('Speech started');
+      setIsPlaying(true);
+    };
+    utterance.onend = () => {
+      console.log('Speech ended');
+      setIsPlaying(false);
+    };
+    utterance.onerror = (e) => {
+      console.log('Speech error:', e);
+      setIsPlaying(false);
+    };
 
+    console.log('Calling speak with:', utterance.text);
     speechSynthRef.current.speak(utterance);
   };
 
