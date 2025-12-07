@@ -135,6 +135,19 @@ const Index = () => {
     utterance.pitch = 1;
     utterance.volume = 1;
 
+    // Try to select the best available voice for English
+    const voices = speechSynthRef.current.getVoices();
+    if (voices.length > 0) {
+      // Prefer a Google or native voice
+      const preferredVoice = voices.find(v => 
+        v.lang.startsWith('en-US') && !v.name.includes('Google')
+      ) || voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+    }
+
     utterance.onstart = () => setIsPlaying(true);
     utterance.onend = () => setIsPlaying(false);
     utterance.onerror = () => setIsPlaying(false);
