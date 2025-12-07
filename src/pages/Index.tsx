@@ -149,7 +149,9 @@ const Index = () => {
     if (selectedText.trim()) {
       speakText(selectedText);
     } else if (content.trim()) {
-      speakText(content);
+      // Remove markdown heading symbols before speaking
+      const cleanedContent = content.replace(/^#+\s*/gm, '');
+      speakText(cleanedContent);
     }
   };
 
