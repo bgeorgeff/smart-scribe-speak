@@ -35,16 +35,16 @@ export const InteractiveText = ({
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
     const word = target.textContent?.trim().replace(/[.,!?;:]/g, '') || "";
-    
+
     console.log('Word clicked:', word);
-    
+
     if (word && /^[a-zA-Z]+$/.test(word)) {
       setHighlightedWord(word);
       onWordClick(word);
-      
+
       // Removed popup position calculation and setting
       // Removed definition fetching and setting
-      
+
       // Remove highlight after a delay
       setTimeout(() => setHighlightedWord(null), 2000);
     }
@@ -55,14 +55,14 @@ export const InteractiveText = ({
   const renderInteractiveContent = (text: string) => {
     // Remove markdown bold formatting (** or __)
     const cleanedText = text.replace(/\*\*/g, '').replace(/__/g, '');
-    
+
     // Split text into words while preserving spaces and punctuation
     const words = cleanedText.split(/(\s+|[.,!?;:])/);
-    
+
     return words.map((word, index) => {
       const isWord = /[a-zA-Z]/.test(word);
       const isHighlighted = highlightedWord === word.trim().replace(/[.,!?;:]/g, '');
-      
+
       if (isWord) {
         return (
           <span
@@ -77,46 +77,44 @@ export const InteractiveText = ({
           </span>
         );
       }
-      
+
       return <span key={index}>{word}</span>;
     });
   };
 
   const paragraphs = content.split('\n\n').filter(p => p.trim());
 
-  return (
-    <div className="relative">
-      <div
-        ref={contentRef}
-        className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily}`}
-        style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
-      >
-        {paragraphs.map((paragraph, index) => {
-          // Check if it's a heading (starts with # or is all caps and short)
-          const isHeading = paragraph.startsWith('#') || 
-            (paragraph.length < 50 && paragraph === paragraph.toUpperCase());
-          
-          if (isHeading) {
-            return (
-              <h2 
-                key={index} 
-                className="text-2xl font-bold mb-4 mt-6 text-foreground"
-                style={{ fontSize: `${fontSize * 1.4}px` }}
-              >
-                {renderInteractiveContent(paragraph.replace(/^#+\s*/, ''))}
-              </h2>
-            );
-          }
-          
-          return (
-            <p key={index} className="mb-4 text-foreground">
-              {renderInteractiveContent(paragraph)}
-            </p>
-          );
-        })}
-      </div>
+  const renderedContent = paragraphs.map((paragraph, index) => {
+    // Check if it's a heading (starts with # or is all caps and short)
+    const isHeading = paragraph.startsWith('#') ||
+      (paragraph.length < 50 && paragraph === paragraph.toUpperCase());
 
-      {/* Removed Definition Popup JSX */}
+    if (isHeading) {
+      return (
+        <h2
+          key={index}
+          className="text-2xl font-bold mb-4 mt-6 text-foreground"
+          style={{ fontSize: `${fontSize * 1.4}px` }}
+        >
+          {renderInteractiveContent(paragraph.replace(/^#+\s*/, ''))}
+        </h2>
+      );
+    }
+
+    return (
+      <p key={index} className="mb-4 text-foreground">
+        {renderInteractiveContent(paragraph)}
+      </p>
+    );
+  });
+
+  return (
+    <div
+      ref={contentRef}
+      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily}`}
+      style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
+    >
+      {renderedContent}
     </div>
   );
 };
