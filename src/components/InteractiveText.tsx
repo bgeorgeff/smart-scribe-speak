@@ -68,6 +68,8 @@ export const InteractiveText = ({
     const target = event.target as HTMLSpanElement;
     const word = target.textContent?.trim().replace(/[.,!?;:]/g, '') || "";
     
+    console.log('Word clicked:', word);
+    
     if (word && /^[a-zA-Z]+$/.test(word)) {
       setHighlightedWord(word);
       onWordClick(word);
@@ -80,19 +82,28 @@ export const InteractiveText = ({
       // Center the popup horizontally on the word
       const popupLeft = rect.left + scrollLeft + (rect.width / 2);
       
-      setPopupPosition({
+      const position = {
         top: rect.bottom + scrollTop + 8,
         left: popupLeft
-      });
+      };
+      
+      console.log('Setting popup position:', position);
+      setPopupPosition(position);
 
       // Fetch definition
       setIsLoadingDef(true);
+      console.log('Fetching definition for:', word);
       const definition = await fetchDefinition(word.toLowerCase());
-      setSelectedWordDef({
+      console.log('Definition received:', definition);
+      
+      const wordDef = {
         word: word,
         definition: definition,
         syllables: [] // Placeholder for future syllable data
-      });
+      };
+      
+      console.log('Setting word definition:', wordDef);
+      setSelectedWordDef(wordDef);
       setIsLoadingDef(false);
       
       // Remove highlight after speaking
@@ -198,70 +209,71 @@ export const InteractiveText = ({
 
       {/* Definition Popup */}
       {selectedWordDef && popupPosition && (
-        <>
-          {/* Backdrop */}
+        <div 
+          className="fixed inset-0 z-[9998] print:hidden" 
+          onClick={closePopup}
+          style={{ pointerEvents: 'auto' }}
+        >
           <div 
-            className="fixed inset-0 z-[9998] print:hidden" 
-            onClick={closePopup}
-          />
-          {/* Popup */}
-          <Card 
-            className="definition-popup fixed z-[9999] shadow-2xl border-2 border-primary max-w-sm bg-white dark:bg-gray-800 print:hidden"
+            className="definition-popup absolute bg-white dark:bg-gray-900 rounded-lg shadow-2xl border-2 border-primary p-4 max-w-sm"
             style={{
               top: `${popupPosition.top}px`,
               left: `${popupPosition.left}px`,
               transform: 'translateX(-50%)',
+              pointerEvents: 'auto',
+              zIndex: 9999,
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-          <div className="p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="font-bold text-lg text-primary capitalize">
-                {selectedWordDef.word}
-              </h3>
-              <Button
-                onClick={closePopup}
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {isLoadingDef ? (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">Loading definition...</span>
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {selectedWordDef.definition}
-                </p>
-                
-                {/* Placeholder for future syllable breakdown */}
-                {selectedWordDef.syllables && selectedWordDef.syllables.length > 0 && (
-                  <div className="pt-2 border-t">
-                    <p className="text-xs text-muted-foreground">
-                      Syllables: {selectedWordDef.syllables.join(' · ')}
-                    </p>
-                  </div>
-                )}
-                
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="font-bold text-lg text-primary capitalize">
+                  {selectedWordDef.word}
+                </h3>
                 <Button
-                  onClick={speakDefinition}
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2"
+                  onClick={closePopup}
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 shrink-0"
                 >
-                  <Volume2 className="h-4 w-4 mr-2" />
-                  Listen to Definition
+                  <X className="h-4 w-4" />
                 </Button>
-              </>
-            )}
+              </div>
+              
+              {isLoadingDef ? (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading definition...</span>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {selectedWordDef.definition}
+                  </p>
+                  
+                  {/* Placeholder for future syllable breakdown */}
+                  {selectedWordDef.syllables && selectedWordDef.syllables.length > 0 && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs text-muted-foreground">
+                        Syllables: {selectedWordDef.syllables.join(' · ')}
+                      </p>
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={speakDefinition}
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                  >
+                    <Volume2 className="h-4 w-4 mr-2" />
+                    Listen to Definition
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
-        </Card>
-        </>
+        </div>
       )}
     </div>
   );
