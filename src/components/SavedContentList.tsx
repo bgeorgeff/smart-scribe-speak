@@ -84,7 +84,7 @@ export const SavedContentList = ({ userId, onLoad }: SavedContentListProps) => {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="bg-card border-border/50 shadow-elegant">
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </CardContent>
@@ -94,9 +94,9 @@ export const SavedContentList = ({ userId, onLoad }: SavedContentListProps) => {
 
   if (savedItems.length === 0) {
     return (
-      <Card>
+      <Card className="bg-card border-border/50 shadow-elegant">
         <CardHeader>
-          <CardTitle>Saved Passages</CardTitle>
+          <CardTitle className="text-2xl text-foreground font-semibold">Saved Passages</CardTitle>
           <CardDescription>Your saved content will appear here</CardDescription>
         </CardHeader>
         <CardContent className="text-center py-8 text-muted-foreground">
@@ -108,22 +108,23 @@ export const SavedContentList = ({ userId, onLoad }: SavedContentListProps) => {
   }
 
   return (
-    <Card>
+    <Card className="bg-card border-border/50 shadow-elegant">
       <CardHeader>
-        <CardTitle>Saved Passages</CardTitle>
+        <CardTitle className="text-2xl text-foreground font-semibold">Saved Passages</CardTitle>
         <CardDescription>Click to load a saved passage</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {savedItems.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+              className="flex items-center justify-between p-3 border border-border/50 rounded-md hover-elevate transition-colors cursor-pointer"
+              data-testid={`card-saved-${item.id}`}
             >
-              <div className="flex-1 cursor-pointer" onClick={() => onLoad(item)}>
-                <h3 className="font-medium text-foreground">{item.topic}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Grade {item.grade_level} • {new Date(item.created_at).toLocaleDateString()}
+              <div className="flex-1" onClick={() => onLoad(item)}>
+                <h3 className="font-medium text-foreground text-sm">{item.topic}</h3>
+                <p className="text-xs text-muted-foreground">
+                  Grade {item.grade_level} &bull; {new Date(item.created_at).toLocaleDateString()}
                 </p>
               </div>
               <Button
@@ -131,6 +132,7 @@ export const SavedContentList = ({ userId, onLoad }: SavedContentListProps) => {
                 size="icon"
                 onClick={() => handleDelete(item.id)}
                 disabled={deletingId === item.id}
+                data-testid={`button-delete-${item.id}`}
               >
                 {deletingId === item.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

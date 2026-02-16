@@ -81,6 +81,15 @@ const Index = () => {
     setIsGenerating(true);
     setContent("");
     setCitations([]);
+    setProgress(0);
+
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        const increment = prev < 30 ? 3 : prev < 60 ? 2 : 1;
+        return Math.min(prev + increment, 90);
+      });
+    }, 500);
 
     try {
       const userDate = new Date();
@@ -97,6 +106,8 @@ const Index = () => {
 
       if (error) throw error;
 
+      clearInterval(progressInterval);
+      setProgress(100);
       setContent(data.content);
       setCitations(data.citations || []);
 
@@ -105,19 +116,21 @@ const Index = () => {
         description: "Your educational content is ready to read.",
       });
 
-      // Scroll to the generated content after a brief delay to ensure rendering
       setTimeout(() => {
+        setIsGenerating(false);
+        setProgress(0);
         contentCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      }, 800);
     } catch (error) {
+      clearInterval(progressInterval);
       console.error('Error generating content:', error);
       toast({
         title: "Generation Failed",
         description: "Failed to generate content. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsGenerating(false);
+      setProgress(0);
     }
   };
 
@@ -344,7 +357,7 @@ const Index = () => {
           {user && (
             <div className="flex justify-center items-center gap-2 text-sm">
               <span className="text-muted-foreground">Signed in as {user.email}</span>
-              <Button onClick={handleSignOut} variant="ghost" size="sm">
+              <Button onClick={handleSignOut} variant="ghost" size="sm" data-testid="button-sign-out">
                 Sign Out
               </Button>
             </div>
@@ -373,6 +386,7 @@ const Index = () => {
                         value={topic}
                         onChange={(e) => setTopic(e.target.value)}
                         className="w-full"
+                        data-testid="input-topic"
                       />
                       <Button
                         type="button"
@@ -382,6 +396,7 @@ const Index = () => {
                         size="icon"
                         className="shrink-0"
                         title={isRecording ? "Stop recording" : "Start voice recording"}
+                        data-testid="button-mic"
                       >
                         {isTranscribing ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
@@ -431,8 +446,9 @@ const Index = () => {
                   <Button
                     onClick={generateContent}
                     disabled={isGenerating || !topic.trim() || !gradeLevel}
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-elegant hover:shadow-lg transition-all duration-300 text-lg py-7 rounded-xl font-medium"
+                    className="w-full bg-primary text-primary-foreground shadow-elegant transition-all duration-300 text-lg py-7 rounded-xl font-medium"
                     size="lg"
+                    data-testid="button-generate"
                   >
                     {isGenerating ? (
                       <>
@@ -443,6 +459,14 @@ const Index = () => {
                       "Generate Educational Content"
                     )}
                   </Button>
+                  {isGenerating && (
+                    <div className="mt-3 space-y-1">
+                      <Progress value={progress} className="h-2" />
+                      <p className="text-xs text-muted-foreground text-center">
+                        {progress < 30 ? "Researching topic..." : progress < 60 ? "Writing content..." : progress < 90 ? "Formatting for grade level..." : "Almost done..."}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -462,55 +486,51 @@ const Index = () => {
                 </div>
 
                 <Card ref={contentCardRef} className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none">
-                  <CardHeader className="flex flex-row items-center justify-between print:hidden">
-                    <CardTitle className="text-2xl text-foreground font-semibold">
-                      Generated Content
-                    </CardTitle>
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm text-muted-foreground">Change Grade:</label>
-                        <Select value={gradeLevel} onValueChange={(newGrade) => {
-                          setGradeLevel(newGrade);
-                          if (topic.trim()) {
-                            setIsGenerating(true);
-                            generateContentWithGrade(newGrade);
-                          }
-                        }}>
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {gradeOptions.map((grade) => (
-                              <SelectItem key={grade.value} value={grade.value}>
-                                {grade.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                  <CardHeader className="print:hidden">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <CardTitle className="text-2xl text-foreground font-semibold">
+                        Generated Content
+                      </CardTitle>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground whitespace-nowrap">Change Grade:</span>
+                          <Select value={gradeLevel} onValueChange={(newGrade) => {
+                            setGradeLevel(newGrade);
+                            if (topic.trim()) {
+                              generateContentWithGrade(newGrade);
+                            }
+                          }}>
+                            <SelectTrigger className="w-32" data-testid="select-change-grade">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {gradeOptions.map((grade) => (
+                                <SelectItem key={grade.value} value={grade.value}>
+                                  {grade.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Button
+                          onClick={isPlaying ? stopSpeech : playSelectedText}
+                          variant="outline"
+                          size="sm"
+                          data-testid="button-play-all"
+                        >
+                          {isPlaying ? (
+                            <>
+                              <Square className="w-4 h-4 mr-1" />
+                              Stop
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 mr-1" />
+                              {selectedText ? "Play Selection" : "Play All"}
+                            </>
+                          )}
+                        </Button>
                       </div>
-                      {selectedText && (
-                        <span className="text-sm text-muted-foreground">
-                          Text selected
-                        </span>
-                      )}
-                      <Button
-                        onClick={isPlaying ? stopSpeech : playSelectedText}
-                        variant="outline"
-                        size="sm"
-                        className="border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all"
-                      >
-                        {isPlaying ? (
-                          <>
-                            <Square className="w-4 h-4 mr-2" />
-                            Stop
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4 mr-2" />
-                            {selectedText ? "Play Selection" : "Play All"}
-                          </>
-                        )}
-                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
