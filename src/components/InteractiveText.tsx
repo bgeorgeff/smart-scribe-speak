@@ -38,16 +38,26 @@ export const InteractiveText = ({
         setSyllablePopup(null);
       }
     };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSyllablePopup(null);
+    };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
+
+  const normalizeWord = (raw: string): string => {
+    let word = raw.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '');
+    word = word.replace(/[\u0027\u2019\u2018\u0060\u00B4\u02BC]/g, "'");
+    return word.trim();
+  };
 
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
-    const word = target.textContent?.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '') || "";
-
-    let normalizedWord = word.replace(/[\u0027\u2019\u2018\u0060\u00B4\u02BC]/g, "'");
-    normalizedWord = normalizedWord.trim();
+    const normalizedWord = normalizeWord(target.textContent || "");
 
     if (normalizedWord && /[a-zA-Z]/.test(normalizedWord)) {
       setHighlightedWord(normalizedWord);
@@ -56,15 +66,12 @@ export const InteractiveText = ({
       const syllables = getSyllables(normalizedWord);
       if (syllables) {
         const rect = target.getBoundingClientRect();
-        const containerRect = contentRef.current?.getBoundingClientRect();
-        if (containerRect) {
-          setSyllablePopup({
-            word: normalizedWord,
-            syllables,
-            x: rect.left - containerRect.left,
-            y: rect.bottom - containerRect.top + 4,
-          });
-        }
+        setSyllablePopup({
+          word: normalizedWord,
+          syllables,
+          x: rect.left,
+          y: rect.bottom + 4,
+        });
       } else {
         setSyllablePopup(null);
       }
@@ -77,7 +84,10 @@ export const InteractiveText = ({
     if (!syllablePopup) return;
     const synth = window.speechSynthesis;
     synth.cancel();
-    const syllableParts = syllablePopup.syllables.split("\u00b7").map(s => s.trim());
+    const syllableParts = syllablePopup.syllables
+      .split("\u00b7")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
     let index = 0;
     const speakNext = () => {
       if (index >= syllableParts.length) return;
@@ -149,7 +159,7 @@ export const InteractiveText = ({
   return (
     <div
       ref={contentRef}
-      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily} relative`}
+      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily}`}
       style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
     >
       {renderedContent}
@@ -158,7 +168,7 @@ export const InteractiveText = ({
         <div
           ref={popupRef}
           data-testid="popup-syllables"
-          className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-3 min-w-[120px]"
+          className="fixed z-50 bg-card border border-border rounded-md shadow-lg p-3 min-w-[120px]"
           style={{
             left: `${syllablePopup.x}px`,
             top: `${syllablePopup.y}px`,

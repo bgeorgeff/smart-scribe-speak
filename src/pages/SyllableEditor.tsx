@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,13 +46,6 @@ const SyllableEditor = () => {
         toast({ title: "Error", description: "Failed to load syllable data.", variant: "destructive" });
       });
   }, []);
-
-  const getEffectiveValue = useCallback(
-    (word: string): string | undefined => {
-      return overrides[word] ?? syllableMap[word];
-    },
-    [overrides, syllableMap]
-  );
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -119,7 +112,7 @@ const SyllableEditor = () => {
           return original ? { ...r, syllables: original, isOverride: false } : r;
         }
         return r;
-      }).filter((r) => syllableMap[r.word] || overrides[r.word])
+      }).filter((r) => syllableMap[r.word] || newOverrides[r.word])
     );
 
     toast({ title: "Override Removed", description: `Reverted "${word}" to original.` });
@@ -141,12 +134,18 @@ const SyllableEditor = () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const imported = JSON.parse(ev.target?.result as string);
-        if (typeof imported === "object" && imported !== null) {
-          const merged = { ...overrides, ...imported };
+        const raw = JSON.parse(ev.target?.result as string);
+        if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
+          const validated: SyllableMap = {};
+          for (const [k, v] of Object.entries(raw)) {
+            if (typeof k === "string" && typeof v === "string" && k.trim() && v.trim()) {
+              validated[k.toLowerCase().trim()] = v.trim();
+            }
+          }
+          const merged = { ...overrides, ...validated };
           setOverrides(merged);
           saveOverrides(merged);
-          toast({ title: "Imported", description: `Imported ${Object.keys(imported).length} overrides.` });
+          toast({ title: "Imported", description: `Imported ${Object.keys(validated).length} overrides.` });
         }
       } catch {
         toast({ title: "Error", description: "Invalid JSON file.", variant: "destructive" });
