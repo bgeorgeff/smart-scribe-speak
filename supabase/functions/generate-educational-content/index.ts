@@ -1,9 +1,102 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+const MAX_TOPIC_LENGTH = 500;
+const MAX_TIMEZONE_LENGTH = 100;
+const VALID_GRADE_LEVELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+
+function sanitizeInput(input: string): string {
+  return input
+    .replace(/[<>]/g, '')
+    .replace(/\x00/g, '')
+    .trim();
+}
+
+function validateRequest(body: unknown): { topic: string; gradeLevel: string; userDate?: Date; userTimezone?: string } {
+  if (!body || typeof body !== 'object') {
+    throw new Error('Invalid request body');
+  }
+
+  const { topic, gradeLevel, userDate, userTimezone } = body as Record<string, unknown>;
+
+  if (!topic || typeof topic !== 'string') {
+    throw new Error('Topic is required and must be a string');
+  }
+  if (topic.length > MAX_TOPIC_LENGTH) {
+    throw new Error(`Topic must be less than ${MAX_TOPIC_LENGTH} characters`);
+  }
+  const sanitizedTopic = sanitizeInput(topic);
+  if (sanitizedTopic.length === 0) {
+    throw new Error('Topic cannot be empty');
+  }
+
+  if (!gradeLevel || typeof gradeLevel !== 'string') {
+    throw new Error('Grade level is required and must be a string');
+  }
+  if (!VALID_GRADE_LEVELS.includes(gradeLevel)) {
+    throw new Error(`Grade level must be one of: ${VALID_GRADE_LEVELS.join(', ')}`);
+  }
+
+  let parsedDate: Date | undefined;
+  if (userDate !== undefined) {
+    if (typeof userDate !== 'string') {
+      throw new Error('User date must be a string');
+    }
+    parsedDate = new Date(userDate);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error('Invalid date format');
+    }
+  }
+
+  let validatedTimezone: string | undefined;
+  if (userTimezone !== undefined) {
+    if (typeof userTimezone !== 'string') {
+      throw new Error('User timezone must be a string');
+    }
+    if (userTimezone.length > MAX_TIMEZONE_LENGTH) {
+      throw new Error(`Timezone must be less than ${MAX_TIMEZONE_LENGTH} characters`);
+    }
+    validatedTimezone = sanitizeInput(userTimezone);
+  }
+
+  return {
+    topic: sanitizedTopic,
+    gradeLevel,
+    userDate: parsedDate,
+    userTimezone: validatedTimezone
+  };
+}
+
+async function authenticateUser(req: Request): Promise<{ userId: string }> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    throw new Error('Authentication required');
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Server configuration error');
+  }
+
+  const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+    global: { headers: { Authorization: authHeader } }
+  });
+
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  
+  if (error || !user) {
+    throw new Error('Invalid authentication');
+  }
+
+  return { userId: user.id };
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,61 +104,38 @@ serve(async (req) => {
   }
 
   try {
-    const { topic, gradeLevel, userDate, userTimezone } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const { userId } = await authenticateUser(req);
+    console.log(`Authenticated user: ${userId}`);
 
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    // Input validation
-    if (!topic || typeof topic !== 'string') {
-      throw new Error("Topic is required and must be a string");
-    }
-
-    if (!gradeLevel || typeof gradeLevel !== 'string') {
-      throw new Error("Grade level is required and must be a string");
-    }
-
-    // Validate grade level is a number between 1 and 12
-    const grade = parseInt(gradeLevel);
-    if (isNaN(grade) || grade < 1 || grade > 12) {
-      throw new Error("Grade level must be a number between 1 and 12");
-    }
-
-    // Validate topic length (max 500 characters)
-    if (topic.length > 500) {
-      throw new Error("Topic must be less than 500 characters");
-    }
-
-    // Validate and sanitize topic to prevent injection
-    const sanitizedTopic = topic.trim();
-    if (sanitizedTopic.length === 0) {
-      throw new Error("Topic cannot be empty or only whitespace");
-    }
-
-    console.log(`Generating content for topic: ${sanitizedTopic}, grade: ${gradeLevel}`);
+    const requestBody = await req.json();
+    const { topic, gradeLevel, userDate, userTimezone } = validateRequest(requestBody);
     
-    // Use user's local date if provided, otherwise fall back to server date
-    const currentDate = userDate ? new Date(userDate) : new Date();
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+
+    if (!OPENAI_API_KEY) {
+      throw new Error("OPENAI_API_KEY is not configured in Supabase Edge Function secrets");
+    }
+
+    console.log(`Generating content for topic: ${topic}, grade: ${gradeLevel}`);
+    
+    const currentDate = userDate ?? new Date();
     console.log(`User date: ${currentDate.toLocaleString('en-US', { timeZone: userTimezone || 'UTC' })}`);
     console.log(`User timezone: ${userTimezone || 'UTC'}`);
 
-    // Determine if the topic requires current, up-to-date information
-    const requiresCurrentInfo = sanitizedTopic.toLowerCase().includes('recent') || 
-                               sanitizedTopic.toLowerCase().includes('latest') || 
-                               sanitizedTopic.toLowerCase().includes('current') ||
-                               sanitizedTopic.toLowerCase().includes('today') ||
-                               sanitizedTopic.toLowerCase().includes('this week') ||
-                               sanitizedTopic.toLowerCase().includes('this month') ||
-                               sanitizedTopic.toLowerCase().includes('this year') ||
-                               sanitizedTopic.toLowerCase().includes('last') ||
-                               sanitizedTopic.toLowerCase().includes('game') ||
-                               sanitizedTopic.toLowerCase().includes('match') ||
-                               sanitizedTopic.toLowerCase().includes('event') ||
-                               sanitizedTopic.toLowerCase().includes('right now') ||
-                               sanitizedTopic.toLowerCase().includes('live') ||
-                               sanitizedTopic.toLowerCase().includes('score');
+    const requiresCurrentInfo = topic.toLowerCase().includes('recent') || 
+                               topic.toLowerCase().includes('latest') || 
+                               topic.toLowerCase().includes('current') ||
+                               topic.toLowerCase().includes('today') ||
+                               topic.toLowerCase().includes('this week') ||
+                               topic.toLowerCase().includes('this month') ||
+                               topic.toLowerCase().includes('this year') ||
+                               topic.toLowerCase().includes('last') ||
+                               topic.toLowerCase().includes('game') ||
+                               topic.toLowerCase().includes('match') ||
+                               topic.toLowerCase().includes('event') ||
+                               topic.toLowerCase().includes('right now') ||
+                               topic.toLowerCase().includes('live') ||
+                               topic.toLowerCase().includes('score');
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
@@ -73,10 +143,8 @@ serve(async (req) => {
     let actualSources: Array<{title: string, url: string}> = [];
 
     if (requiresCurrentInfo) {
-      // Perform actual web search for current information
-      console.log(`Searching web for: ${sanitizedTopic}`);
+      console.log(`Searching web for: ${topic}`);
       
-      // Enhance search query with user's local date for "today" queries
       const todayFormatted = currentDate.toLocaleDateString('en-US', { 
         month: 'long', 
         day: 'numeric', 
@@ -89,52 +157,53 @@ serve(async (req) => {
         year: 'numeric',
         timeZone: userTimezone || 'UTC'
       });
-      const isTodayQuery = sanitizedTopic.toLowerCase().includes('today');
+      const isTodayQuery = topic.toLowerCase().includes('today');
       
-      // For today queries, add multiple date formats to improve search accuracy
       const searchQuery = isTodayQuery 
-        ? `${sanitizedTopic} "${todayFormatted}" OR "${todayShort}"` 
-        : sanitizedTopic;
+        ? `${topic} "${todayFormatted}" OR "${todayShort}"` 
+        : topic;
       
       console.log(`Enhanced search query: ${searchQuery}`);
       const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
       
       try {
-        const searchResponse = await fetch(searchUrl, {
-          headers: {
-            'Accept': 'application/json',
-            'X-Subscription-Token': Deno.env.get('BRAVE_SEARCH_API_KEY') || ''
-          }
-        });
+        const braveKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
+        if (braveKey) {
+          const searchResponse = await fetch(searchUrl, {
+            headers: {
+              'Accept': 'application/json',
+              'X-Subscription-Token': braveKey
+            }
+          });
 
-        if (searchResponse.ok) {
-          const searchResults = await searchResponse.json();
-          console.log('Search results:', JSON.stringify(searchResults, null, 2));
-          
-          // Extract sources and snippets
-          if (searchResults.web?.results) {
-            actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
-              title: result.title,
-              url: result.url
-            }));
+          if (searchResponse.ok) {
+            const searchResults = await searchResponse.json();
+            console.log('Search results:', JSON.stringify(searchResults, null, 2));
             
-            // Combine search results into research info
-            researchInfo = searchResults.web.results
-              .slice(0, 5)
-              .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
-              .join('\n\n');
-            
-            console.log('Found sources:', actualSources.length);
+            if (searchResults.web?.results) {
+              actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
+                title: result.title,
+                url: result.url
+              }));
+              
+              researchInfo = searchResults.web.results
+                .slice(0, 5)
+                .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
+                .join('\n\n');
+              
+              console.log('Found sources:', actualSources.length);
+            }
+          } else {
+            console.log('Search API failed, falling back to AI research');
           }
         } else {
-          console.log('Search API failed, falling back to AI research');
+          console.log('No BRAVE_SEARCH_API_KEY configured, using AI research only');
         }
       } catch (error) {
         console.error('Search error:', error);
       }
     }
 
-    // If we didn't get web search results, use AI to research
     if (!researchInfo) {
       const researchDate = currentDate.toLocaleDateString('en-US', { 
         month: 'long', 
@@ -151,23 +220,17 @@ serve(async (req) => {
         ? `Today is ${researchDate}. Provide detailed information about: ${topic}. Include the most recent and up-to-date information available.`
         : `Research and provide comprehensive information about: ${topic}. Include key facts and important details.`;
 
-      const aiResearchResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      const aiResearchResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'gpt-4o-mini',
           messages: [
-            {
-              role: 'system',
-              content: researchSystemPrompt
-            },
-            {
-              role: 'user',
-              content: researchUserPrompt
-            }
+            { role: 'system', content: researchSystemPrompt },
+            { role: 'user', content: researchUserPrompt }
           ]
         })
       });
@@ -183,11 +246,9 @@ serve(async (req) => {
     console.log('Research info length:', researchInfo.length);
     console.log('Actual sources found:', actualSources.length);
 
-    // Generate grade-appropriate content based on research
-    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, sanitizedTopic, researchInfo, requiresCurrentInfo, actualSources, currentDate, userTimezone);
+    const contentPrompt = getGradeAppropriatePrompt(gradeLevel, topic, researchInfo, requiresCurrentInfo, actualSources, currentDate, userTimezone);
 
-    // If we have web search results, inject them directly into the user prompt with strict date requirements
-    const todayFormatted = currentDate.toLocaleDateString('en-US', { 
+    const todayFmt = currentDate.toLocaleDateString('en-US', { 
       month: 'long', 
       day: 'numeric', 
       year: 'numeric',
@@ -203,26 +264,20 @@ serve(async (req) => {
         hour: 'numeric',
         minute: '2-digit',
         timeZone: userTimezone || 'UTC'
-      })}):\n\n${researchInfo}\n\n---\n\nIMPORTANT: Today is ${todayFormatted}. If the user asked about "today's game", you MUST ONLY discuss games that happened on ${todayFormatted}. If no game happened on ${todayFormatted}, clearly state that.\n\n${contentPrompt.userPrompt}` 
+      })}):\n\n${researchInfo}\n\n---\n\nIMPORTANT: Today is ${todayFmt}. If the user asked about "today's game", you MUST ONLY discuss games that happened on ${todayFmt}. If no game happened on ${todayFmt}, clearly state that.\n\n${contentPrompt.userPrompt}` 
       : contentPrompt.userPrompt;
 
-    const contentResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const contentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'gpt-4o-mini',
         messages: [
-          {
-            role: 'system',
-            content: contentPrompt.systemPrompt
-          },
-          {
-            role: 'user',
-            content: userPromptWithContext
-          }
+          { role: 'system', content: contentPrompt.systemPrompt },
+          { role: 'user', content: userPromptWithContext }
         ]
       })
     });
@@ -234,10 +289,8 @@ serve(async (req) => {
     const contentData = await contentResponse.json();
     const generatedContent = contentData.choices[0].message.content;
 
-    // Extract content and citations, or use actual sources if available
     let { content, citations } = parseContentAndCitations(generatedContent);
     
-    // If we have actual sources and no citations were parsed, use the actual sources
     if (citations.length === 0 && actualSources.length > 0) {
       citations = actualSources.map(s => `${s.title} - ${s.url}`);
     }
@@ -245,31 +298,20 @@ serve(async (req) => {
     console.log('Content generated successfully');
 
     return new Response(
-      JSON.stringify({
-        content,
-        citations,
-        gradeLevel,
-        topic: sanitizedTopic
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ content, citations, gradeLevel, topic }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
     console.error('Error in generate-educational-content:', error);
     const errorMessage = error instanceof Error ? error.message : 'Failed to generate content';
-    const errorDetails = error instanceof Error ? error.toString() : String(error);
+    
+    const isAuthError = errorMessage === 'Authentication required' || errorMessage === 'Invalid authentication';
+    const status = isAuthError ? 401 : 500;
     
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: errorDetails
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      JSON.stringify({ error: errorMessage }),
+      { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
@@ -302,7 +344,7 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
   }
 
   const currentInfoNote = requiresCurrentInfo 
-    ? `\n8. CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, times, scores, and recent details from the research. If discussing a "most recent" or "latest" event, it MUST be from ${currentDate.getFullYear()}, preferably the last few weeks or months.`
+    ? `\n8. CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, times, scores, and recent details from the research.`
     : '';
 
   const sourcesNote = actualSources.length > 0
@@ -357,7 +399,7 @@ SOURCES:
 IMPORTANT: Do NOT include a SOURCES section since no verified web sources are available for this topic.`}`;
 
   const currentInfoUserNote = requiresCurrentInfo
-    ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}. Include specific dates, scores, results, and the most current information available from the research. If the topic asks for "most recent" or "latest", the information MUST be from ${currentDate.getFullYear()}.`
+    ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}.`
     : '';
 
   const userPrompt = `Create educational content about "${topic}" for grade ${gradeLevel} students. Use this research information to ensure accuracy:
