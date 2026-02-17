@@ -2,54 +2,54 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, Download, Upload, ArrowLeft, Trash2, Lock } from "lucide-react";
+import { Search, Save, Download, Upload, ArrowLeft, Trash2, Lock, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { invalidateOverridesCache } from "@/hooks/useSyllables";
 
 type SyllableMap = Record<string, string>;
 
-const OVERRIDES_KEY = "syllable_overrides";
 const EDITOR_PASSWORD = import.meta.env.VITE_SYLLABLE_EDITOR_PASSWORD || "";
-
-function getOverrides(): SyllableMap {
-  try {
-    const raw = localStorage.getItem(OVERRIDES_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function saveOverrides(overrides: SyllableMap) {
-  localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
-}
 
 const SyllableEditor = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState("");
   const [passwordError, setPasswordError] = useState(false);
   const [syllableMap, setSyllableMap] = useState<SyllableMap>({});
-  const [overrides, setOverrides] = useState<SyllableMap>(getOverrides());
+  const [overrides, setOverrides] = useState<SyllableMap>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Array<{ word: string; syllables: string; isOverride: boolean }>>([]);
   const [editWord, setEditWord] = useState("");
   const [editSyllables, setEditSyllables] = useState("");
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("/syllables.json")
-      .then((res) => res.json())
-      .then((data: SyllableMap) => {
-        setSyllableMap(data);
+    if (!isAuthenticated) return;
+
+    Promise.all([
+      fetch("/syllables.json").then((res) => res.json()),
+      supabase.from("syllable_overrides").select("word, syllables"),
+    ])
+      .then(([syllData, { data: overrideRows, error }]) => {
+        setSyllableMap(syllData as SyllableMap);
+        if (!error && overrideRows) {
+          const map: SyllableMap = {};
+          for (const row of overrideRows) {
+            map[row.word] = row.syllables;
+          }
+          setOverrides(map);
+        }
         setIsLoaded(true);
       })
       .catch(() => {
         toast({ title: "Error", description: "Failed to load syllable data.", variant: "destructive" });
       });
-  }, []);
+  }, [isAuthenticated]);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) {
@@ -86,28 +86,55 @@ const SyllableEditor = () => {
     setEditSyllables(syllables);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editWord.trim() || !editSyllables.trim()) {
       toast({ title: "Missing Info", description: "Please enter both a word and its syllable breakdown.", variant: "destructive" });
       return;
     }
     const key = editWord.toLowerCase().trim();
-    const newOverrides = { ...overrides, [key]: editSyllables.trim() };
+    const value = editSyllables.trim();
+    setIsSaving(true);
+
+    const { error } = await supabase
+      .from("syllable_overrides")
+      .upsert({ word: key, syllables: value, updated_at: new Date().toISOString() }, { onConflict: "word" });
+
+    setIsSaving(false);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to save. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    const newOverrides = { ...overrides, [key]: value };
     setOverrides(newOverrides);
-    saveOverrides(newOverrides);
+    invalidateOverridesCache();
 
     setSearchResults((prev) =>
-      prev.map((r) => (r.word === key ? { ...r, syllables: editSyllables.trim(), isOverride: true } : r))
+      prev.map((r) => (r.word === key ? { ...r, syllables: value, isOverride: true } : r))
     );
 
-    toast({ title: "Saved", description: `Updated syllable breakdown for "${key}".` });
+    toast({ title: "Saved", description: `Updated syllable breakdown for "${key}". All users will see this change.` });
   };
 
-  const handleRemoveOverride = (word: string) => {
+  const handleRemoveOverride = async (word: string) => {
+    setIsSaving(true);
+    const { error } = await supabase
+      .from("syllable_overrides")
+      .delete()
+      .eq("word", word);
+
+    setIsSaving(false);
+
+    if (error) {
+      toast({ title: "Error", description: "Failed to remove override.", variant: "destructive" });
+      return;
+    }
+
     const newOverrides = { ...overrides };
     delete newOverrides[word];
     setOverrides(newOverrides);
-    saveOverrides(newOverrides);
+    invalidateOverridesCache();
 
     setSearchResults((prev) =>
       prev.map((r) => {
@@ -119,7 +146,7 @@ const SyllableEditor = () => {
       }).filter((r) => syllableMap[r.word] || newOverrides[r.word])
     );
 
-    toast({ title: "Override Removed", description: `Reverted "${word}" to original.` });
+    toast({ title: "Override Removed", description: `Reverted "${word}" to original. Change applies to all users.` });
   };
 
   const handleExportOverrides = () => {
@@ -132,24 +159,46 @@ const SyllableEditor = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportOverrides = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportOverrides = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const raw = JSON.parse(ev.target?.result as string);
         if (typeof raw === "object" && raw !== null && !Array.isArray(raw)) {
           const validated: SyllableMap = {};
           for (const [k, v] of Object.entries(raw)) {
             if (typeof k === "string" && typeof v === "string" && k.trim() && v.trim()) {
-              validated[k.toLowerCase().trim()] = v.trim();
+              validated[k.toLowerCase().trim()] = (v as string).trim();
             }
           }
+
+          setIsSaving(true);
+          const rows = Object.entries(validated).map(([word, syllables]) => ({
+            word,
+            syllables,
+            updated_at: new Date().toISOString(),
+          }));
+
+          const batchSize = 500;
+          for (let i = 0; i < rows.length; i += batchSize) {
+            const batch = rows.slice(i, i + batchSize);
+            const { error } = await supabase
+              .from("syllable_overrides")
+              .upsert(batch, { onConflict: "word" });
+            if (error) {
+              toast({ title: "Error", description: `Import failed at batch ${Math.floor(i / batchSize) + 1}.`, variant: "destructive" });
+              setIsSaving(false);
+              return;
+            }
+          }
+
           const merged = { ...overrides, ...validated };
           setOverrides(merged);
-          saveOverrides(merged);
-          toast({ title: "Imported", description: `Imported ${Object.keys(validated).length} overrides.` });
+          invalidateOverridesCache();
+          setIsSaving(false);
+          toast({ title: "Imported", description: `Imported ${Object.keys(validated).length} overrides. All users will see these changes.` });
         }
       } catch {
         toast({ title: "Error", description: "Invalid JSON file.", variant: "destructive" });
@@ -277,12 +326,12 @@ const SyllableEditor = () => {
                 )}
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleSave} data-testid="button-save-syllable">
-                  <Save className="w-4 h-4 mr-1" />
+                <Button onClick={handleSave} disabled={isSaving} data-testid="button-save-syllable">
+                  {isSaving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Save className="w-4 h-4 mr-1" />}
                   Save
                 </Button>
                 {editWord && overrides[editWord.toLowerCase()] && (
-                  <Button variant="outline" onClick={() => handleRemoveOverride(editWord.toLowerCase())} data-testid="button-remove-override">
+                  <Button variant="outline" onClick={() => handleRemoveOverride(editWord.toLowerCase())} disabled={isSaving} data-testid="button-remove-override">
                     <Trash2 className="w-4 h-4 mr-1" />
                     Revert to Original
                   </Button>
@@ -316,7 +365,7 @@ const SyllableEditor = () => {
                       <span className="font-medium text-foreground text-sm">{word}</span>
                       <span className="text-muted-foreground text-sm ml-2">{syllables.replace(/-/g, "\u00b7 ")}</span>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveOverride(word)} data-testid={`button-remove-${word}`}>
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveOverride(word)} disabled={isSaving} data-testid={`button-remove-${word}`}>
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>

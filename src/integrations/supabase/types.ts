@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      syllable_overrides: {
+        Row: {
+          id: string
+          word: string
+          syllables: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          word: string
+          syllables: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          word?: string
+          syllables?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_content: {
         Row: {
           citations: Json | null

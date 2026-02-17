@@ -44,8 +44,8 @@ Preferred communication style: Simple, everyday language.
 - Auth state checked on mount and monitored via `onAuthStateChange` listener
 
 ## Data Model (Supabase/Postgres)
-- **`saved_content` table**: Stores user-generated content with fields for topic, grade_level, content, citations (JSON), font_family, font_size, user_id, and timestamps
-- Row-level security is expected to be configured in Supabase (user_id scoped)
+- **`saved_content` table**: Stores user-generated content with fields for topic, grade_level, content, citations (JSON), font_family, font_size, user_id, and timestamps. RLS: user_id scoped (each user sees only their own).
+- **`syllable_overrides` table**: Stores admin-managed syllable corrections that apply globally to all users. Fields: word (unique), syllables, timestamps. RLS: read open to all, write open (protected by app-level password on the Syllable Editor UI).
 
 ## Development Server
 - Runs on port 5000 (configured in vite.config.ts)

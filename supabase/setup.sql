@@ -41,3 +41,41 @@ CREATE POLICY "Users can delete own saved content"
 
 -- Create index for faster user lookups
 CREATE INDEX IF NOT EXISTS idx_saved_content_user_id ON public.saved_content(user_id);
+
+-- ============================================================
+-- Syllable Overrides table (admin-managed, globally visible)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS public.syllable_overrides (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  word text NOT NULL UNIQUE,
+  syllables text NOT NULL,
+  created_at timestamptz DEFAULT now() NOT NULL,
+  updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+ALTER TABLE public.syllable_overrides ENABLE ROW LEVEL SECURITY;
+
+-- Everyone can read syllable overrides (they apply globally to all users)
+CREATE POLICY "Anyone can read syllable overrides"
+  ON public.syllable_overrides
+  FOR SELECT
+  USING (true);
+
+-- Write access open (the Syllable Editor UI is password-protected at the app level)
+CREATE POLICY "Allow insert syllable overrides"
+  ON public.syllable_overrides
+  FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow update syllable overrides"
+  ON public.syllable_overrides
+  FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Allow delete syllable overrides"
+  ON public.syllable_overrides
+  FOR DELETE
+  USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_syllable_overrides_word ON public.syllable_overrides(word);
