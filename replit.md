@@ -31,7 +31,7 @@ Preferred communication style: Simple, everyday language.
 
 ## Key Design Patterns
 - **Single-page app architecture**: Almost all functionality lives on the Index page, with auth as a gating component
-- **Supabase Edge Functions**: Content generation and audio transcription are handled server-side via Supabase (invoked from the frontend). The edge function code is not in this repo — it lives in the Supabase project.
+- **Supabase Edge Functions**: Content generation and audio transcription are handled server-side via Supabase (invoked from the frontend). Edge function source code is in `supabase/functions/` — must be deployed to the Supabase project separately using the Supabase CLI.
 - **Browser Speech Synthesis**: Text-to-speech uses the Web Speech API (`window.speechSynthesis`), not a cloud service
 - **Audio Recording**: Uses the MediaRecorder Web API to capture microphone input, converts to base64, and sends to Supabase for transcription
 - **Accessibility Focus**: Dyslexia-friendly fonts (Arial, Verdana, Helvetica, Tahoma, Calibri, Comic Sans MS), adjustable font sizes with named labels (Small/Medium/Large/Extra Large), interactive word clicking
@@ -59,6 +59,11 @@ Preferred communication style: Simple, everyday language.
 - **Config**: Requires `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` environment variables
 - **Client**: Initialized in `src/integrations/supabase/client.ts`
 - **Types**: Auto-generated in `src/integrations/supabase/types.ts` — includes the `saved_content` table schema
+- **Database Setup**: Run `supabase/setup.sql` in Supabase SQL Editor to create the `saved_content` table with RLS policies
+- **Edge Functions**: Source code in `supabase/functions/`. Deploy via Supabase CLI. Required secrets: `OPENAI_API_KEY` (required), `BRAVE_SEARCH_API_KEY` (optional, for web search on current-events topics)
+- **Edge Function Details**:
+  - `generate-educational-content`: Uses OpenAI GPT-4o-mini for grade-level content generation, with optional Brave Search for current events
+  - `speech-to-text`: Uses OpenAI Whisper for voice-to-text transcription
 
 ## Browser APIs Used
 - **Web Speech API** (`speechSynthesis`): Text-to-speech playback
