@@ -14,7 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Styling**: Tailwind CSS with CSS variables for theming (HSL color system)
 - **UI Components**: shadcn/ui component library built on Radix UI primitives
 - **State Management**: React Query (`@tanstack/react-query`) for server state, React `useState` for local state
-- **Routing**: React Router DOM with a simple two-route setup (Index page + 404 catch-all)
+- **Routing**: React Router DOM (Index page, Syllable Editor page, 404 catch-all)
 
 ## Path Aliases
 - `@/*` maps to `./src/*` — all imports should use this alias pattern
@@ -23,7 +23,8 @@ Preferred communication style: Simple, everyday language.
 - `src/pages/` — Route-level page components (Index is the main app page)
 - `src/components/` — Feature components (Auth, InteractiveText, ContentToolbar, FontSelector, SavedContentList, ResetPassword)
 - `src/components/ui/` — shadcn/ui primitives (do not modify these directly unless necessary)
-- `src/hooks/` — Custom hooks (useAudioRecorder, use-toast, use-mobile)
+- `src/hooks/` — Custom hooks (useAudioRecorder, useSyllables, use-toast, use-mobile)
+- `src/pages/SyllableEditor.tsx` — Admin page for searching and editing syllable breakdowns
 - `src/integrations/supabase/` — Supabase client setup and auto-generated types
 - `src/types/` — Shared TypeScript type definitions
 - `src/lib/utils.ts` — Utility functions (cn for className merging)
@@ -34,6 +35,7 @@ Preferred communication style: Simple, everyday language.
 - **Browser Speech Synthesis**: Text-to-speech uses the Web Speech API (`window.speechSynthesis`), not a cloud service
 - **Audio Recording**: Uses the MediaRecorder Web API to capture microphone input, converts to base64, and sends to Supabase for transcription
 - **Accessibility Focus**: Dyslexia-friendly fonts (Arial, Verdana, Helvetica, Tahoma, Calibri, Comic Sans MS), adjustable font sizes with named labels (Small/Medium/Large/Extra Large), interactive word clicking
+- **Syllable Breakdown**: 161,471-word syllable dictionary stored as `public/syllables.json` (sourced from user's custom spreadsheet for dyslexic-optimized syllable divisions). Clicking a word shows a popup with syllable breakdown (e.g., "A· me· ri· can"). User corrections stored in localStorage as overrides, editable via `/syllable-editor` page. The `useSyllables` hook loads the JSON on first use and caches it in memory for instant lookups.
 
 ## Authentication
 - Supabase Auth with email/password sign-up and sign-in

@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Play, Square, Mic } from "lucide-react";
+import { Loader2, Play, Square, Mic, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { FontSelector } from "@/components/FontSelector";
@@ -18,6 +19,7 @@ import type { User, SavedContent } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [topic, setTopic] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
   const [fontSize, setFontSize] = useState(18);
@@ -357,6 +359,10 @@ const Index = () => {
           {user && (
             <div className="flex justify-center items-center gap-2 text-sm">
               <span className="text-muted-foreground">Signed in as {user.email}</span>
+              <Button onClick={() => navigate("/syllable-editor")} variant="ghost" size="sm" data-testid="button-syllable-editor">
+                <Settings className="w-3.5 h-3.5 mr-1" />
+                Syllable Editor
+              </Button>
               <Button onClick={handleSignOut} variant="ghost" size="sm" data-testid="button-sign-out">
                 Sign Out
               </Button>

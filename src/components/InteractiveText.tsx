@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, X, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Volume2, X } from "lucide-react";
+import { useSyllables } from "@/hooks/useSyllables";
 
 interface InteractiveTextProps {
   content: string;
@@ -12,7 +11,12 @@ interface InteractiveTextProps {
   isPlaying: boolean;
 }
 
-// Removed interface WordDefinition and related states/functions
+interface SyllablePopup {
+  word: string;
+  syllables: string;
+  x: number;
+  y: number;
+}
 
 export const InteractiveText = ({
   content,
@@ -23,44 +27,74 @@ export const InteractiveText = ({
   isPlaying
 }: InteractiveTextProps) => {
   const contentRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
   const [highlightedWord, setHighlightedWord] = useState<string | null>(null);
-  // Removed selectedWordDef, popupPosition, isLoadingDef, speechSynthRef states
+  const [syllablePopup, setSyllablePopup] = useState<SyllablePopup | null>(null);
+  const { getSyllables } = useSyllables();
 
-  // Removed useEffect for speech synthesis initialization
-  // Removed useEffect for handling clicks outside the popup
-
-  // Removed fetchDefinition function
-  // Removed speakDefinition function
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
+        setSyllablePopup(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
     const target = event.target as HTMLSpanElement;
-    // Strip punctuation from both beginning and end, but keep apostrophes for contractions
     const word = target.textContent?.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '') || "";
 
-    // Normalize all Unicode apostrophe variants to straight apostrophe
-    // Use a broader replacement to catch any apostrophe-like character
     let normalizedWord = word.replace(/[\u0027\u2019\u2018\u0060\u00B4\u02BC]/g, "'");
-    
-    // Also strip any remaining leading/trailing whitespace or special chars
     normalizedWord = normalizedWord.trim();
-    
-    // Only require that it has at least one letter (covers contractions like "it's")
+
     if (normalizedWord && /[a-zA-Z]/.test(normalizedWord)) {
       setHighlightedWord(normalizedWord);
       onWordClick(normalizedWord);
 
-      // Remove highlight after a delay
+      const syllables = getSyllables(normalizedWord);
+      if (syllables) {
+        const rect = target.getBoundingClientRect();
+        const containerRect = contentRef.current?.getBoundingClientRect();
+        if (containerRect) {
+          setSyllablePopup({
+            word: normalizedWord,
+            syllables,
+            x: rect.left - containerRect.left,
+            y: rect.bottom - containerRect.top + 4,
+          });
+        }
+      } else {
+        setSyllablePopup(null);
+      }
+
       setTimeout(() => setHighlightedWord(null), 2000);
     }
   };
 
-  // Removed closePopup function
+  const speakSyllables = () => {
+    if (!syllablePopup) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const syllableParts = syllablePopup.syllables.split("\u00b7").map(s => s.trim());
+    let index = 0;
+    const speakNext = () => {
+      if (index >= syllableParts.length) return;
+      const utterance = new SpeechSynthesisUtterance(syllableParts[index]);
+      utterance.lang = "en-US";
+      utterance.rate = 0.6;
+      utterance.onend = () => {
+        index++;
+        setTimeout(speakNext, 300);
+      };
+      synth.speak(utterance);
+    };
+    speakNext();
+  };
 
   const renderInteractiveContent = (text: string) => {
-    // Remove markdown bold formatting (** or __)
     const cleanedText = text.replace(/\*\*/g, '').replace(/__/g, '');
-
-    // Split text into words while preserving spaces and punctuation
     const words = cleanedText.split(/(\s+|[.,!?;:])/);
 
     return words.map((word, index) => {
@@ -72,6 +106,7 @@ export const InteractiveText = ({
           <span
             key={index}
             onClick={handleWordClick}
+            data-testid={`word-${index}`}
             className={`cursor-pointer hover:bg-accent hover:text-accent-foreground rounded px-1 transition-colors ${
               isHighlighted ? 'bg-primary text-primary-foreground' : ''
             } ${isPlaying ? 'animate-pulse' : ''}`}
@@ -89,7 +124,6 @@ export const InteractiveText = ({
   const paragraphs = content.split('\n\n').filter(p => p.trim());
 
   const renderedContent = paragraphs.map((paragraph, index) => {
-    // Check if it's a heading (starts with # or is all caps and short)
     const isHeading = paragraph.startsWith('#') ||
       (paragraph.length < 50 && paragraph === paragraph.toUpperCase());
 
@@ -115,10 +149,45 @@ export const InteractiveText = ({
   return (
     <div
       ref={contentRef}
-      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily}`}
+      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily} relative`}
       style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
     >
       {renderedContent}
+
+      {syllablePopup && (
+        <div
+          ref={popupRef}
+          data-testid="popup-syllables"
+          className="absolute z-50 bg-card border border-border rounded-md shadow-lg p-3 min-w-[120px]"
+          style={{
+            left: `${syllablePopup.x}px`,
+            top: `${syllablePopup.y}px`,
+          }}
+        >
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={speakSyllables}
+                data-testid="button-speak-syllables"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-medium text-foreground">Syllables</span>
+            </div>
+            <button
+              onClick={() => setSyllablePopup(null)}
+              data-testid="button-close-syllables"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="text-base text-foreground" style={{ fontFamily }}>
+            {syllablePopup.syllables}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
