@@ -2,13 +2,14 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, Save, Download, Upload, ArrowLeft, Trash2 } from "lucide-react";
+import { Search, Save, Download, Upload, ArrowLeft, Trash2, Lock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 type SyllableMap = Record<string, string>;
 
 const OVERRIDES_KEY = "syllable_overrides";
+const EDITOR_PASSWORD = import.meta.env.VITE_SYLLABLE_EDITOR_PASSWORD || "";
 
 function getOverrides(): SyllableMap {
   try {
@@ -24,6 +25,9 @@ function saveOverrides(overrides: SyllableMap) {
 }
 
 const SyllableEditor = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
   const [syllableMap, setSyllableMap] = useState<SyllableMap>({});
   const [overrides, setOverrides] = useState<SyllableMap>(getOverrides());
   const [searchQuery, setSearchQuery] = useState("");
@@ -154,6 +158,49 @@ const SyllableEditor = () => {
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const handlePasswordSubmit = () => {
+    if (passwordInput === EDITOR_PASSWORD) {
+      setIsAuthenticated(true);
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <Lock className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+            <CardTitle>Syllable Editor</CardTitle>
+            <p className="text-sm text-muted-foreground">Enter the password to continue</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Input
+              type="password"
+              placeholder="Password"
+              value={passwordInput}
+              onChange={(e) => { setPasswordInput(e.target.value); setPasswordError(false); }}
+              onKeyDown={(e) => e.key === "Enter" && handlePasswordSubmit()}
+              data-testid="input-editor-password"
+            />
+            {passwordError && (
+              <p className="text-sm text-destructive">Incorrect password. Please try again.</p>
+            )}
+            <Button className="w-full" onClick={handlePasswordSubmit} data-testid="button-unlock">
+              Unlock
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => navigate("/")} data-testid="button-back-to-home">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to Home
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

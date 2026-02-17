@@ -39,3 +39,8 @@ outputType = "webview"
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+VITE_SYLLABLE_EDITOR_PASSWORD = "!d2L{_DB#Fp;YyrJ5^+)"
