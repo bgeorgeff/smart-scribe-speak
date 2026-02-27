@@ -48,6 +48,37 @@ const Index = () => {
 
   // Check auth status
   useEffect(() => {
+    // Handle URL parameters for auth confirmation if present
+    const handleAuthParams = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+
+      if (tokenHash && type) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type as any,
+        });
+
+        if (error) {
+          toast({
+            title: "Verification Failed",
+            description: error.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: type === "recovery" ? "Password reset verified." : "Email confirmed!",
+          });
+          // Clean up URL
+          window.history.replaceState({}, document.title, "/");
+        }
+      }
+    };
+
+    handleAuthParams();
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
