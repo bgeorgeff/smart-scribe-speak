@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node -e \"const fs=require('fs');const p=require('path');const routes=['auth/confirm','reset-password'];routes.forEach(r=>{const d=p.join('dist',r);fs.mkdirSync(d,{recursive:true});fs.copyFileSync('dist/index.html',p.join(d,'index.html'));});console.log('SPA fallback pages created.');\"",
+    "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
