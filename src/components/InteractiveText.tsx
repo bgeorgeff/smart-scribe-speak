@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Volume2, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useSyllables } from "@/hooks/useSyllables";
 import { getCssFontFamily } from "@/lib/fonts";
 
@@ -102,29 +102,6 @@ export const InteractiveText = ({
     }
   };
 
-  const speakSyllables = () => {
-    if (!syllablePopup) return;
-    const synth = window.speechSynthesis;
-    synth.cancel();
-    const syllableParts = syllablePopup.syllables
-      .split("\u00b7")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    let index = 0;
-    const speakNext = () => {
-      if (index >= syllableParts.length) return;
-      const utterance = new SpeechSynthesisUtterance(syllableParts[index]);
-      utterance.lang = "en-US";
-      utterance.rate = 0.6;
-      utterance.onend = () => {
-        index++;
-        setTimeout(speakNext, 300);
-      };
-      synth.speak(utterance);
-    };
-    speakNext();
-  };
-
   const renderInteractiveContent = (text: string) => {
     const cleanedText = text.replace(/\*\*/g, '').replace(/__/g, '');
     const words = cleanedText.split(/(\s+|[.,!?;:])/);
@@ -199,16 +176,7 @@ export const InteractiveText = ({
           }}
         >
           <div className="flex items-center justify-between gap-3 mb-2">
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={speakSyllables}
-                data-testid="button-speak-syllables"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Volume2 className="w-4 h-4" />
-              </button>
-              <span className="text-sm font-medium text-foreground">Syllables</span>
-            </div>
+            <span className="text-sm font-medium text-foreground">Syllables</span>
             <button
               onClick={() => setSyllablePopup(null)}
               data-testid="button-close-syllables"
