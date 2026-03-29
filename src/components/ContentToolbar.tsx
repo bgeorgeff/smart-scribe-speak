@@ -3,6 +3,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Save, Printer } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { FONT_OPTIONS } from "@/lib/fonts";
 
 interface ContentToolbarProps {
   fontFamily: string;
@@ -13,15 +14,6 @@ interface ContentToolbarProps {
   onPrint: () => void;
   isSaving?: boolean;
 }
-
-const FONT_OPTIONS = [
-  { value: "Arial", label: "Arial" },
-  { value: "Times New Roman", label: "Times New Roman" },
-  { value: "Georgia", label: "Georgia" },
-  { value: "Verdana", label: "Verdana" },
-  { value: "Comic Sans MS", label: "Comic Sans MS" },
-  { value: "Courier New", label: "Courier New" },
-];
 
 const getFontSizeLabel = (size: number): string => {
   if (size <= 13) return "Small";

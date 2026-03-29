@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Volume2, X } from "lucide-react";
 import { useSyllables } from "@/hooks/useSyllables";
+import { getCssFontFamily } from "@/lib/fonts";
 
 interface InteractiveTextProps {
   content: string;
@@ -48,6 +49,27 @@ export const InteractiveText = ({
       document.removeEventListener("keydown", handleEscape);
     };
   }, []);
+
+  // Handle text selection
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || !contentRef.current) return;
+
+      // Only track selections within our content area
+      if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        if (contentRef.current.contains(range.commonAncestorContainer)) {
+          onTextSelection(selection.toString().trim());
+        }
+      }
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => {
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [onTextSelection]);
 
   const normalizeWord = (raw: string): string => {
     let word = raw.trim().replace(/^[.,!?;:"]+|[.,!?;:"]+$/g, '');
@@ -134,8 +156,8 @@ export const InteractiveText = ({
   const paragraphs = content.split('\n\n').filter(p => p.trim());
 
   const renderedContent = paragraphs.map((paragraph, index) => {
-    const isHeading = paragraph.startsWith('#') ||
-      (paragraph.length < 50 && paragraph === paragraph.toUpperCase());
+    // Only treat lines starting with # as headings (markdown convention)
+    const isHeading = /^#{1,6}\s/.test(paragraph);
 
     if (isHeading) {
       return (
@@ -156,11 +178,13 @@ export const InteractiveText = ({
     );
   });
 
+  const cssFontFamily = getCssFontFamily(fontFamily);
+
   return (
     <div
       ref={contentRef}
-      className={`prose prose-lg max-w-none leading-relaxed font-${fontFamily}`}
-      style={{ fontSize: `${fontSize}px`, lineHeight: '1.6' }}
+      className="prose prose-lg max-w-none leading-relaxed"
+      style={{ fontSize: `${fontSize}px`, lineHeight: '1.6', fontFamily: cssFontFamily }}
     >
       {renderedContent}
 
@@ -193,7 +217,7 @@ export const InteractiveText = ({
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="text-base text-foreground" style={{ fontFamily }}>
+          <div className="text-base text-foreground" style={{ fontFamily: cssFontFamily }}>
             {syllablePopup.syllables}
           </div>
         </div>
