@@ -363,7 +363,7 @@ const Index = () => {
                 <BookOpen className="w-3.5 h-3.5 mr-1" />
                 Review Words
               </Button>
-              {(user.email === "bob.georgeff@mevsd.us" || user.email === "bgeorgeff@gmail.com" || (user.email?.startsWith("bgeorgeff") && user.email?.endsWith("@protonmail.com"))) && (
+              {user.email === "bgeorgeff@protonmail.com" && (
                 <Button onClick={() => navigate("/syllable-editor")} variant="ghost" size="sm" data-testid="button-syllable-editor">
                   <Settings className="w-3.5 h-3.5 mr-1" />
                   Syllable Editor
