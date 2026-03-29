@@ -359,7 +359,7 @@ const Index = () => {
           {user && (
             <div className="flex justify-center items-center gap-2 text-sm">
               <span className="text-muted-foreground">Signed in as {user.email}</span>
-              {(user.email === "bob.georgeff@mevsd.us" || user.email === "bgeorgeff@gmail.com" || user.email === "bgeorgeff@protonmail.com") && (
+              {(user.email === "bob.georgeff@mevsd.us" || user.email === "bgeorgeff@gmail.com" || (user.email?.startsWith("bgeorgeff") && user.email?.endsWith("@protonmail.com"))) && (
                 <Button onClick={() => navigate("/syllable-editor")} variant="ghost" size="sm" data-testid="button-syllable-editor">
                   <Settings className="w-3.5 h-3.5 mr-1" />
                   Syllable Editor
