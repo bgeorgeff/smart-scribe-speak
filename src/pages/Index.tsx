@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Play, Square, Mic, Settings } from "lucide-react";
+import { Loader2, Play, Square, Mic, Settings, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -359,6 +359,10 @@ const Index = () => {
           {user && (
             <div className="flex justify-center items-center gap-2 text-sm">
               <span className="text-muted-foreground">Signed in as {user.email}</span>
+              <Button onClick={() => navigate("/review-words")} variant="ghost" size="sm" data-testid="button-review-words">
+                <BookOpen className="w-3.5 h-3.5 mr-1" />
+                Review Words
+              </Button>
               {(user.email === "bob.georgeff@mevsd.us" || user.email === "bgeorgeff@gmail.com" || (user.email?.startsWith("bgeorgeff") && user.email?.endsWith("@protonmail.com"))) && (
                 <Button onClick={() => navigate("/syllable-editor")} variant="ghost" size="sm" data-testid="button-syllable-editor">
                   <Settings className="w-3.5 h-3.5 mr-1" />

@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import SyllableEditor from "./pages/SyllableEditor";
 import NotFound from "./pages/NotFound";
 import AuthConfirm from "./pages/AuthConfirm";
+import ReviewWords from "./pages/ReviewWords";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/auth/confirm" element={<AuthConfirm />} />
           <Route path="/syllable-editor" element={<SyllableEditor />} />
+          <Route path="/review-words" element={<ReviewWords />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

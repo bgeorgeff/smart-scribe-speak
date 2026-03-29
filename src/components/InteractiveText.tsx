@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useSyllables } from "@/hooks/useSyllables";
 import { getCssFontFamily } from "@/lib/fonts";
+import { saveWord } from "@/lib/wordStorage";
 
 interface InteractiveTextProps {
   content: string;
@@ -86,6 +87,7 @@ export const InteractiveText = ({
       onWordClick(normalizedWord);
 
       const syllables = getSyllables(normalizedWord);
+      saveWord(normalizedWord, syllables);
       if (syllables) {
         const rect = target.getBoundingClientRect();
         setSyllablePopup({
