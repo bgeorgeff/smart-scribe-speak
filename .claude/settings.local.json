@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find '/c/Users/bg657/Documents/Claude CoWork' -type f -name *.json -o -name *.ts -o -name *.tsx)",
+      "Bash(find /c/Users/bg657/Documents/READSMART-V1/TextSummarizer-and-Reading-Aid -type d -not -path */node_modules/* -not -path */.git/* -not -path */dist/*)",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"OPENAI\\\\|RESEND\\\\|DATABASE\" /c/Users/bg657/Documents/READSMART-V1/TextSummarizer-and-Reading-Aid --include=*.ts --include=*.tsx --include=*.env* --include=*.json)",
+      "Bash(grep -rn \"Resend\\\\|email\\\\|confirm\" /c/Users/bg657/Documents/READSMART-V1/TextSummarizer-and-Reading-Aid --include=*.ts --include=*.tsx)",
+      "Bash(grep -rn \"password\\\\|auth\\\\|session\\\\|login\\\\|register\\\\|token\" /c/Users/bg657/Documents/READSMART-V1/TextSummarizer-and-Reading-Aid/server --include=*.ts)",
+      "Bash(git -C \"C:/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything\" status)",
+      "Bash(npm install:*)",
+      "Bash(gh repo:*)",
+      "WebFetch(domain:learn-anything.replit.app)",
+      "Bash(npm run:*)",
+      "Bash(find C:Usersbg657DocumentsClaudesmart-scribe-speak-aka-learn-anything -name .env* -o -name *.env)",
+      "Bash(where supabase:*)",
+      "Bash(ls -la C:/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything/.env*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx supabase:*)",
+      "Bash(supabase --version)",
+      "Bash(node -e \":*)",
+      "Bash(npm root:*)",
+      "Bash(where node:*)",
+      "Read(//c/Program Files/nodejs/**)",
+      "Read(//c/Users/bg657/AppData/Roaming/**)",
+      "Read(//c/Users/bg657/AppData/Local/**)",
+      "Read(//c/Users/bg657/AppData/**)",
+      "Bash(cmd.exe /c \"where node\")",
+      "Bash(cmd.exe /c \"node -e \"\"console.log\\(''found''\\)\"\"\")",
+      "Bash(ls /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything/public/favicon*)",
+      "Bash(\"/c/Program Files/Python311/python.exe\" --version)",
+      "Bash(npx tsc:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/bg657/AppData/Roaming/npm\")"
+    ]
+  }
+}

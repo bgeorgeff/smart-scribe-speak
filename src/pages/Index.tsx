@@ -15,6 +15,7 @@ import { Auth } from "@/components/Auth";
 import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
 import { SavedContentList } from "@/components/SavedContentList";
+import { Footer } from "@/components/Footer";
 import type { User, SavedContent } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
@@ -603,6 +604,8 @@ const Index = () => {
             </div>
           </>
         )}
+
+        <Footer user={user} />
       </div>
 
       <style>{`

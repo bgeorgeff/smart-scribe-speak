@@ -3,11 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Trash2, Volume2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Footer } from "@/components/Footer";
 import { getWords, removeWord, clearWords, type ClickedWord } from "@/lib/wordStorage";
+import type { User } from "@/types";
 
 const ReviewWords = () => {
   const navigate = useNavigate();
   const [words, setWords] = useState<ClickedWord[]>([]);
+  const [user, setUser] = useState<User>(null);
   const speechSynthRef = useRef<SpeechSynthesis | null>(null);
 
   useEffect(() => {
@@ -15,6 +19,12 @@ const ReviewWords = () => {
       speechSynthRef.current = window.speechSynthesis;
     }
     setWords(getWords().sort((a, b) => b.clickedAt.localeCompare(a.clickedAt)));
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
   }, []);
 
   const handleRemove = (word: string) => {
@@ -114,6 +124,8 @@ const ReviewWords = () => {
             </Card>
           </>
         )}
+
+        <Footer user={user} />
       </div>
     </div>
   );
