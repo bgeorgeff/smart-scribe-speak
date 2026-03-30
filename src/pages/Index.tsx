@@ -52,6 +52,13 @@ const Index = () => {
 
   // Check auth status
   useEffect(() => {
+    // Check for password reset redirect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "true") {
+      setIsResettingPassword(true);
+      window.history.replaceState({}, document.title, "/");
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });

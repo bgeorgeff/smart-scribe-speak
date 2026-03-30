@@ -34,7 +34,7 @@ const AuthConfirm = () => {
           }
           // Clean up URL params before redirecting
           window.history.replaceState({}, document.title, "/auth/confirm");
-          setTimeout(() => navigate("/"), 2000);
+          setTimeout(() => navigate(type === "recovery" ? "/?reset=true" : "/"), 2000);
         }
         return;
       }
