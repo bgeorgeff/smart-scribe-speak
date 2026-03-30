@@ -15,7 +15,8 @@ import { Auth } from "@/components/Auth";
 import { ResetPassword } from "@/components/ResetPassword";
 import { ContentToolbar } from "@/components/ContentToolbar";
 import { SavedContentList } from "@/components/SavedContentList";
-import { Footer } from "@/components/Footer";
+import { FeedbackFab } from "@/components/FeedbackFab";
+import { FeedbackForm } from "@/components/FeedbackForm";
 import type { User, SavedContent } from "@/types";
 import { Progress } from "@/components/ui/progress";
 
@@ -34,6 +35,8 @@ const Index = () => {
   const [user, setUser] = useState<User>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const { isRecording, startRecording, stopRecording } = useAudioRecorder();
   const [isTranscribing, setIsTranscribing] = useState(false);
 
@@ -113,6 +116,8 @@ const Index = () => {
       setProgress(100);
       setContent(data.content);
       setCitations(data.citations || []);
+      setShowFeedbackPrompt(false);
+      setTimeout(() => setShowFeedbackPrompt(true), 3000);
 
       toast({
         title: "Content Generated!",
@@ -555,6 +560,25 @@ const Index = () => {
                       onTextSelection={setSelectedText}
                       isPlaying={isPlaying}
                     />
+                    {showFeedbackPrompt && (
+                      <div className="mt-6 pt-4 border-t border-border/50 flex items-center justify-between animate-fade-in print:hidden">
+                        <span className="text-sm text-muted-foreground">How was this content?</span>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setIsFeedbackOpen(true)}
+                            className="text-sm text-primary hover:underline font-medium"
+                          >
+                            Share feedback →
+                          </button>
+                          <button
+                            onClick={() => setShowFeedbackPrompt(false)}
+                            className="text-muted-foreground hover:text-foreground text-xs ml-2"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </>
@@ -605,8 +629,14 @@ const Index = () => {
           </>
         )}
 
-        <Footer user={user} />
       </div>
+
+      <FeedbackFab user={user} />
+      <FeedbackForm
+        isOpen={isFeedbackOpen}
+        onClose={() => setIsFeedbackOpen(false)}
+        user={user}
+      />
 
       <style>{`
         @media print {

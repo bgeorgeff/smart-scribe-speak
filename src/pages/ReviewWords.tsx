@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Trash2, Volume2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Footer } from "@/components/Footer";
+import { FeedbackFab } from "@/components/FeedbackFab";
 import { getWords, removeWord, clearWords, type ClickedWord } from "@/lib/wordStorage";
 import type { User } from "@/types";
 
@@ -125,7 +125,7 @@ const ReviewWords = () => {
           </>
         )}
 
-        <Footer user={user} />
+        <FeedbackFab user={user} />
       </div>
     </div>
   );
