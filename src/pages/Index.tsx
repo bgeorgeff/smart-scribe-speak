@@ -108,12 +108,16 @@ const Index = () => {
       const userDate = new Date();
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
-        body: { 
-          topic: topic.trim(), 
+        body: {
+          topic: topic.trim(),
           gradeLevel: grade,
           userDate: userDate.toISOString(),
           userTimezone: userTimezone
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
         }
       });
 
