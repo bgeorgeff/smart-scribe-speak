@@ -205,8 +205,12 @@ const Index = () => {
         setIsTranscribing(true);
         const { audio: audioData, mimeType } = await stopRecording();
 
+        const { data: { session } } = await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
-          body: { audio: audioData, mimeType }
+          body: { audio: audioData, mimeType },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
         });
 
         if (error) throw error;
