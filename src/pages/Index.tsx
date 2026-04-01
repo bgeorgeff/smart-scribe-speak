@@ -203,10 +203,10 @@ const Index = () => {
     if (isRecording) {
       try {
         setIsTranscribing(true);
-        const audioData = await stopRecording();
+        const { audio: audioData, mimeType } = await stopRecording();
 
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
-          body: { audio: audioData }
+          body: { audio: audioData, mimeType }
         });
 
         if (error) throw error;
@@ -363,7 +363,7 @@ const Index = () => {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-10">
         <header className="text-center space-y-6 py-12 print:hidden">
-          <h1 className="text-6xl md:text-7xl font-bold text-foreground animate-fade-in leading-tight">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-foreground animate-fade-in leading-snug break-words">
             Learn <span className="text-primary italic">anything</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">

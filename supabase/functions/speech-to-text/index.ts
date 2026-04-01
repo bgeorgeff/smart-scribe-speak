@@ -20,7 +20,7 @@ function validateAudioInput(body: unknown): string {
     throw new Error('Invalid request body');
   }
 
-  const { audio } = body as Record<string, unknown>;
+  const { audio, mimeType } = body as Record<string, unknown>;
 
   if (!audio) {
     throw new Error('No audio data provided');
@@ -43,6 +43,16 @@ function validateAudioInput(body: unknown): string {
   }
 
   return audio;
+}
+
+function getAudioMimeType(body: unknown): string {
+  if (body && typeof body === 'object') {
+    const { mimeType } = body as Record<string, unknown>;
+    if (typeof mimeType === 'string' && ['audio/webm', 'audio/mp4', 'audio/ogg'].includes(mimeType)) {
+      return mimeType;
+    }
+  }
+  return 'audio/webm';
 }
 
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
@@ -111,14 +121,16 @@ serve(async (req) => {
 
     const requestBody = await req.json();
     const audio = validateAudioInput(requestBody);
+    const mimeType = getAudioMimeType(requestBody);
+    const fileExt = mimeType === 'audio/mp4' ? 'mp4' : mimeType === 'audio/ogg' ? 'ogg' : 'webm';
 
-    console.log('Processing audio transcription...');
+    console.log(`Processing audio transcription (${mimeType})...`);
 
     const binaryAudio = processBase64Chunks(audio);
-    
+
     const formData = new FormData();
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' });
-    formData.append('file', blob, 'audio.webm');
+    const blob = new Blob([binaryAudio], { type: mimeType });
+    formData.append('file', blob, `audio.${fileExt}`);
     formData.append('model', 'whisper-1');
 
     const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
