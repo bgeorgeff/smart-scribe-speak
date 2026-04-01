@@ -371,7 +371,7 @@ const Index = () => {
             Learn <span className="text-primary italic">anything</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">
-            Learn to Read by Reading to Learn
+            Read About Any Topic At Any Grade Level
           </p>
           {user && (
             <div className="flex flex-wrap justify-center items-center gap-2 text-sm">
@@ -513,7 +513,7 @@ const Index = () => {
                   />
                 </div>
 
-                <Card ref={contentCardRef} className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none">
+                <Card ref={contentCardRef} className="bg-card border-border/50 shadow-elegant animate-fade-in print:shadow-none print:border-none print:bg-white">
                   <CardHeader className="print:hidden">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <CardTitle className="text-2xl text-foreground font-semibold">

@@ -94,7 +94,7 @@ const ReviewWords = () => {
                           {entry.word}
                         </span>
                         {entry.syllables && (
-                          <span className="ml-3 text-sm text-muted-foreground">
+                          <span className="ml-3 text-lg text-muted-foreground">
                             {entry.syllables}
                           </span>
                         )}
