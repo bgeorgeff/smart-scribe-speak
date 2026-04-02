@@ -379,7 +379,7 @@ const Index = () => {
             Learn <span className="text-primary italic">anything</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">
-            Read About Any Topic At Any Grade Level
+            Any Topic, Any Level
           </p>
           {user && (
             <div className="flex flex-wrap justify-center items-center gap-2 text-sm">

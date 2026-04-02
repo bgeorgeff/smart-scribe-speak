@@ -148,5 +148,11 @@ All colors MUST be HSL.
       background: white !important;
       background-image: none !important;
     }
+
+    /* Hide toast notifications when printing */
+    [data-radix-toast-viewport],
+    [data-sonner-toaster] {
+      display: none !important;
+    }
   }
 }

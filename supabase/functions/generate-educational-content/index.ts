@@ -122,20 +122,29 @@ serve(async (req) => {
     console.log(`User date: ${currentDate.toLocaleString('en-US', { timeZone: userTimezone || 'UTC' })}`);
     console.log(`User timezone: ${userTimezone || 'UTC'}`);
 
-    const requiresCurrentInfo = topic.toLowerCase().includes('recent') || 
-                               topic.toLowerCase().includes('latest') || 
-                               topic.toLowerCase().includes('current') ||
-                               topic.toLowerCase().includes('today') ||
-                               topic.toLowerCase().includes('this week') ||
-                               topic.toLowerCase().includes('this month') ||
-                               topic.toLowerCase().includes('this year') ||
-                               topic.toLowerCase().includes('last') ||
-                               topic.toLowerCase().includes('game') ||
-                               topic.toLowerCase().includes('match') ||
-                               topic.toLowerCase().includes('event') ||
-                               topic.toLowerCase().includes('right now') ||
-                               topic.toLowerCase().includes('live') ||
-                               topic.toLowerCase().includes('score');
+    const topicLower = topic.toLowerCase();
+    const requiresCurrentInfo = topicLower.includes('recent') ||
+                               topicLower.includes('latest') ||
+                               topicLower.includes('current') ||
+                               topicLower.includes('today') ||
+                               topicLower.includes('this week') ||
+                               topicLower.includes('this month') ||
+                               topicLower.includes('this year') ||
+                               topicLower.includes('last') ||
+                               topicLower.includes('news') ||
+                               topicLower.includes('update') ||
+                               topicLower.includes('breaking') ||
+                               topicLower.includes('announce') ||
+                               topicLower.includes('just happened') ||
+                               topicLower.includes('game') ||
+                               topicLower.includes('match') ||
+                               topicLower.includes('event') ||
+                               topicLower.includes('right now') ||
+                               topicLower.includes('live') ||
+                               topicLower.includes('score') ||
+                               topicLower.includes('election') ||
+                               topicLower.includes('release') ||
+                               topicLower.includes('launch');
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
@@ -144,28 +153,28 @@ serve(async (req) => {
 
     if (requiresCurrentInfo) {
       console.log(`Searching web for: ${topic}`);
-      
-      const todayFormatted = currentDate.toLocaleDateString('en-US', { 
-        month: 'long', 
-        day: 'numeric', 
+
+      const todayFormatted = currentDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
         year: 'numeric',
         timeZone: userTimezone || 'UTC'
       });
-      const todayShort = currentDate.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
+      const todayShort = currentDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
         year: 'numeric',
         timeZone: userTimezone || 'UTC'
       });
-      const isTodayQuery = topic.toLowerCase().includes('today');
-      
-      const searchQuery = isTodayQuery 
-        ? `${topic} "${todayFormatted}" OR "${todayShort}"` 
+      const isTodayQuery = topicLower.includes('today');
+
+      const searchQuery = isTodayQuery
+        ? `${topic} "${todayFormatted}" OR "${todayShort}"`
         : topic;
-      
+
       console.log(`Enhanced search query: ${searchQuery}`);
       const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
-      
+
       try {
         const braveKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
         if (braveKey) {
@@ -179,18 +188,18 @@ serve(async (req) => {
           if (searchResponse.ok) {
             const searchResults = await searchResponse.json();
             console.log('Search results:', JSON.stringify(searchResults, null, 2));
-            
+
             if (searchResults.web?.results) {
               actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
                 title: result.title,
                 url: result.url
               }));
-              
+
               researchInfo = searchResults.web.results
                 .slice(0, 5)
                 .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
                 .join('\n\n');
-              
+
               console.log('Found sources:', actualSources.length);
             }
           } else {
@@ -386,7 +395,8 @@ Content requirements:
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
 6. Write in an engaging, friendly tone${actualSources.length > 0 ? `
-7. At the end, add a "SOURCES:" section with the provided source URLs` : ''}${currentInfoNote}
+7. At the end, add a "SOURCES:" section with the provided source URLs` : `
+7. At the end, add a "SOURCES:" section listing only real, well-known sources you are genuinely confident were used to build your knowledge on this topic (e.g. Wikipedia, NASA, National Geographic, Khan Academy, CDC, etc.). Do NOT invent sources. Do NOT include URLs — only source names. If you have no genuinely known sources for this topic, write exactly: "No sources were consulted for this content generation."`}${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
@@ -395,8 +405,8 @@ SOURCES:
 1. [Source name] - [URL]
 2. [Source name] - [URL]
 ...${sourcesNote}` : `
-
-IMPORTANT: Do NOT include a SOURCES section since no verified web sources are available for this topic.`}`;
+SOURCES:
+[List only genuinely known source names, no URLs, no invented entries. If none, write: "No sources were consulted for this content generation."]`}`;
 
   const currentInfoUserNote = requiresCurrentInfo
     ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}.`
@@ -409,7 +419,7 @@ ${researchInfo}
 Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}
 ${actualSources.length > 0 ? `
 IMPORTANT: In your SOURCES section, you MUST use the exact URLs provided above. Do not make up or generalize URLs.` : `
-IMPORTANT: Do NOT include a SOURCES section or any URLs. No verified web sources are available for this topic.`}`;
+IMPORTANT: In your SOURCES section, list only source names (no URLs) that you are genuinely confident about. Do not invent sources. If you have none, write exactly: "No sources were consulted for this content generation."`}`;
 
   return { systemPrompt, userPrompt };
 }
@@ -427,6 +437,11 @@ function parseContentAndCitations(generatedContent: string): { content: string; 
   const content = generatedContent.substring(0, sourcesIndex).trim();
   const sourcesSection = generatedContent.substring(sourcesIndex + 'SOURCES:'.length).trim();
   
+  const noSourcesMessage = 'No sources were consulted for this content generation.';
+  if (sourcesSection.includes(noSourcesMessage)) {
+    return { content, citations: [noSourcesMessage] };
+  }
+
   const citations = sourcesSection
     .split('\n')
     .map(line => line.trim())

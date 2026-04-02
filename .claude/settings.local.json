@@ -32,7 +32,22 @@
       "Bash(ls /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything/public/favicon*)",
       "Bash(\"/c/Program Files/Python311/python.exe\" --version)",
       "Bash(npx tsc:*)",
-      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/bg657/AppData/Roaming/npm\")"
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs:/c/Users/bg657/AppData/Roaming/npm\")",
+      "WebSearch",
+      "Bash(supabase link:*)",
+      "Bash(npx -p typescript tsc --noEmit)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"https://zffzdgcldmcsdnxddfwj.supabase.co/functions/v1/speech-to-text\" -H \"Content-Type: application/json\" -d '{\"\"audio\"\":\"\"test\"\"}')",
+      "Bash(curl -s -X POST \"https://zffzdgcldmcsdnxddfwj.supabase.co/functions/v1/generate-educational-content\" -H \"Content-Type: application/json\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmZnpkZ2NsZG1jc2RueGRkZndqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyODk4NzgsImV4cCI6MjA4Njg2NTg3OH0.1IywnjC-7eXBUPwjcwLyS-8XQyCGi39aIQC7Xoy68l0\" -d '{\"\"topic\"\":\"\"test\"\",\"\"gradeLevel\"\":\"\"3\"\"}')",
+      "Bash(curl -s -X POST \"https://zffzdgcldmcsdnxddfwj.supabase.co/functions/v1/speech-to-text\" -H \"Content-Type: application/json\" -H \"apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmZnpkZ2NsZG1jc2RueGRkZndqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyODk4NzgsImV4cCI6MjA4Njg2NTg3OH0.1IywnjC-7eXBUPwjcwLyS-8XQyCGi39aIQC7Xoy68l0\" -d '{\"\"audio\"\":\"\"test\"\"}')",
+      "Bash(supabase db:*)",
+      "Bash(find /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything -type f \\\\\\(-name *.csv -o -name *convert* -o -name *import* -o -name *export* -o -name *upload* \\\\\\))",
+      "Bash(find /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything -iname readme* -o -iname *.md)",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything log --all --oneline -- public/syllables.json)",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything show 0edd5f6 --stat)",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything log --all --format=%B -- attached_assets/160K*)",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything log --all --oneline -- \"attached_assets/*xlsx\")",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything log --all --format=\"%ai\" -- \"public/syllables.json\")",
+      "Bash(git -C /c/Users/bg657/Documents/Claude/smart-scribe-speak-aka-learn-anything log --all --oneline)"
     ]
   }
 }
