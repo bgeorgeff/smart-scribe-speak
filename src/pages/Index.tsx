@@ -108,16 +108,12 @@ const Index = () => {
       const userDate = new Date();
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-      const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
         body: {
           topic: topic.trim(),
           gradeLevel: grade,
           userDate: userDate.toISOString(),
           userTimezone: userTimezone
-        },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`
         }
       });
 
@@ -209,12 +205,8 @@ const Index = () => {
         setIsTranscribing(true);
         const { audio: audioData, mimeType } = await stopRecording();
 
-        const { data: { session } } = await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
-          body: { audio: audioData, mimeType },
-          headers: {
-            Authorization: `Bearer ${session?.access_token}`
-          }
+          body: { audio: audioData, mimeType }
         });
 
         if (error) throw error;
@@ -485,10 +477,10 @@ const Index = () => {
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin inline-block" />
-                        Generating Content...
+                        Generating...
                       </>
                     ) : (
-                      "Generate Educational Content"
+                      "Generate"
                     )}
                   </Button>
                   {isGenerating && (
