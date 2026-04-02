@@ -165,9 +165,21 @@ const Index = () => {
     utterance.volume = 1;
 
     // Select the best available voice for English
+    // Prefer adult voices and avoid child/young voices
     const voices = speechSynthRef.current.getVoices();
     if (voices.length > 0) {
-      const preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+      // On iOS, look for default or Premium voices and avoid child voices
+      let preferredVoice = voices.find(v =>
+        v.lang.startsWith('en-US') &&
+        !v.name.toLowerCase().includes('child') &&
+        !v.name.toLowerCase().includes('young')
+      );
+
+      // Fallback to first en-US voice if no adult voice found
+      if (!preferredVoice) {
+        preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
+      }
+
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
