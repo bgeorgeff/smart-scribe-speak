@@ -108,12 +108,23 @@ const Index = () => {
       const userDate = new Date();
       const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+      let { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+      }
+      if (!session?.access_token) {
+        throw new Error('Your session has expired. Please sign out and sign back in.');
+      }
       const { data, error } = await supabase.functions.invoke('generate-educational-content', {
         body: {
           topic: topic.trim(),
           gradeLevel: grade,
           userDate: userDate.toISOString(),
           userTimezone: userTimezone
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
@@ -165,21 +176,9 @@ const Index = () => {
     utterance.volume = 1;
 
     // Select the best available voice for English
-    // Prefer adult voices and avoid child/young voices
     const voices = speechSynthRef.current.getVoices();
     if (voices.length > 0) {
-      // On iOS, look for default or Premium voices and avoid child voices
-      let preferredVoice = voices.find(v =>
-        v.lang.startsWith('en-US') &&
-        !v.name.toLowerCase().includes('child') &&
-        !v.name.toLowerCase().includes('young')
-      );
-
-      // Fallback to first en-US voice if no adult voice found
-      if (!preferredVoice) {
-        preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-      }
-
+      const preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
       if (preferredVoice) {
         utterance.voice = preferredVoice;
       }
@@ -217,8 +216,12 @@ const Index = () => {
         setIsTranscribing(true);
         const { audio: audioData, mimeType } = await stopRecording();
 
+        const { data: { session } } = await supabase.auth.getSession();
         const { data, error } = await supabase.functions.invoke('speech-to-text', {
-          body: { audio: audioData, mimeType }
+          body: { audio: audioData, mimeType },
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`
+          }
         });
 
         if (error) throw error;
@@ -379,7 +382,7 @@ const Index = () => {
             Learn <span className="text-primary italic">anything</span>
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground animate-fade-in max-w-2xl mx-auto leading-relaxed">
-            Any Topic, Any Level
+            Read About Any Topic At Any Grade Level
           </p>
           {user && (
             <div className="flex flex-wrap justify-center items-center gap-2 text-sm">
@@ -489,10 +492,10 @@ const Index = () => {
                     {isGenerating ? (
                       <>
                         <Loader2 className="w-5 h-5 mr-2 animate-spin inline-block" />
-                        Generating...
+                        Generating Content...
                       </>
                     ) : (
-                      "Generate"
+                      "Generate Educational Content"
                     )}
                   </Button>
                   {isGenerating && (
@@ -659,14 +662,8 @@ const Index = () => {
       <style>{`
         @media print {
           body {
-            background-color: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          * {
-            background-color: white !important;
-            box-shadow: none !important;
-            border: none !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
           .print\\:hidden {
             display: none !important;
@@ -682,12 +679,6 @@ const Index = () => {
           }
           .print\\:text-black {
             color: black !important;
-          }
-          .print\\:border-none {
-            border: none !important;
-          }
-          .print\\:bg-white {
-            background-color: white !important;
           }
         }
       `}</style>
