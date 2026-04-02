@@ -144,73 +144,76 @@ serve(async (req) => {
                                topicLower.includes('score') ||
                                topicLower.includes('election') ||
                                topicLower.includes('release') ||
-                               topicLower.includes('launch');
+                               topicLower.includes('launch') ||
+                               topicLower.includes('ranking') ||
+                               topicLower.includes('standings') ||
+                               topicLower.includes('number one') ||
+                               topicLower.includes('number 1') ||
+                               topicLower.includes('#1');
 
     console.log(`Requires current info: ${requiresCurrentInfo}`);
 
     let researchInfo = '';
     let actualSources: Array<{title: string, url: string}> = [];
 
-    if (requiresCurrentInfo) {
-      console.log(`Searching web for: ${topic}`);
+    console.log(`Searching web for: ${topic}`);
 
-      const todayFormatted = currentDate.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: userTimezone || 'UTC'
-      });
-      const todayShort = currentDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        timeZone: userTimezone || 'UTC'
-      });
-      const isTodayQuery = topicLower.includes('today');
+    const todayFormatted = currentDate.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: userTimezone || 'UTC'
+    });
+    const todayShort = currentDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: userTimezone || 'UTC'
+    });
+    const isTodayQuery = topicLower.includes('today');
 
-      const searchQuery = isTodayQuery
-        ? `${topic} "${todayFormatted}" OR "${todayShort}"`
-        : topic;
+    const searchQuery = isTodayQuery
+      ? `${topic} "${todayFormatted}" OR "${todayShort}"`
+      : topic;
 
-      console.log(`Enhanced search query: ${searchQuery}`);
-      const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
+    console.log(`Search query: ${searchQuery}`);
+    const searchUrl = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(searchQuery)}&count=5`;
 
-      try {
-        const braveKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
-        if (braveKey) {
-          const searchResponse = await fetch(searchUrl, {
-            headers: {
-              'Accept': 'application/json',
-              'X-Subscription-Token': braveKey
-            }
-          });
+    try {
+      const braveKey = Deno.env.get('BRAVE_SEARCH_API_KEY');
+      if (braveKey) {
+        const searchResponse = await fetch(searchUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'X-Subscription-Token': braveKey
+          }
+        });
 
-          if (searchResponse.ok) {
-            const searchResults = await searchResponse.json();
-            console.log('Search results:', JSON.stringify(searchResults, null, 2));
+        if (searchResponse.ok) {
+          const searchResults = await searchResponse.json();
+          console.log('Search results:', JSON.stringify(searchResults, null, 2));
 
-            if (searchResults.web?.results) {
-              actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
-                title: result.title,
-                url: result.url
-              }));
+          if (searchResults.web?.results) {
+            actualSources = searchResults.web.results.slice(0, 5).map((result: any) => ({
+              title: result.title,
+              url: result.url
+            }));
 
-              researchInfo = searchResults.web.results
-                .slice(0, 5)
-                .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
-                .join('\n\n');
+            researchInfo = searchResults.web.results
+              .slice(0, 5)
+              .map((result: any) => `${result.title}\n${result.description}\nSource: ${result.url}`)
+              .join('\n\n');
 
-              console.log('Found sources:', actualSources.length);
-            }
-          } else {
-            console.log('Search API failed, falling back to AI research');
+            console.log('Found sources:', actualSources.length);
           }
         } else {
-          console.log('No BRAVE_SEARCH_API_KEY configured, using AI research only');
+          console.log('Search API failed, falling back to AI research');
         }
-      } catch (error) {
-        console.error('Search error:', error);
+      } else {
+        console.log('No BRAVE_SEARCH_API_KEY configured, using AI research only');
       }
+    } catch (error) {
+      console.error('Search error:', error);
     }
 
     if (!researchInfo) {
@@ -283,7 +286,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         messages: [
           { role: 'system', content: contentPrompt.systemPrompt },
           { role: 'user', content: userPromptWithContext }
@@ -364,12 +367,19 @@ function getGradeAppropriatePrompt(gradeLevel: string, topic: string, researchIn
                      topic.toLowerCase().includes('live') || 
                      (topic.toLowerCase().includes('current') && topic.toLowerCase().includes('score'));
 
-  const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations. 
+  const systemPrompt = `You are an expert educational content writer specializing in creating grade-appropriate explanations.
 
-${requiresCurrentInfo ? `CRITICAL INSTRUCTION: You are being provided with CURRENT web search results. Today's date is ${currentDate.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    month: 'long', 
-    day: 'numeric', 
+${actualSources.length > 0 ? `⚠️ OVERRIDE INSTRUCTION — THIS TAKES ABSOLUTE PRIORITY:
+You have been given live web search results retrieved RIGHT NOW. These results are the ground truth.
+Your training data is OUTDATED and MUST be ignored for any facts, names, rankings, scores, or statistics in this response.
+DO NOT blend your training knowledge with the search results.
+DO NOT fill in gaps with what you "know" — if the search results do not contain a specific fact, say so rather than inventing it from training data.
+Every factual claim in your response MUST come directly from the search results provided below.` : ''}
+
+${requiresCurrentInfo && actualSources.length === 0 ? `CRITICAL INSTRUCTION: Today's date is ${currentDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
     year: 'numeric',
     timeZone: userTimezone
   })}. ${isLiveQuery ? 'The user is asking about a LIVE or IN-PROGRESS event. If the search results do not contain live scores or information about a game happening RIGHT NOW, you MUST clearly explain that you cannot access real-time live scores and suggest checking live sports websites.' : ''} You MUST:
@@ -395,8 +405,7 @@ Content requirements:
 4. Include specific facts and details from the research
 5. End with a conclusion that summarizes key points
 6. Write in an engaging, friendly tone${actualSources.length > 0 ? `
-7. At the end, add a "SOURCES:" section with the provided source URLs` : `
-7. At the end, add a "SOURCES:" section listing only real, well-known sources you are genuinely confident were used to build your knowledge on this topic (e.g. Wikipedia, NASA, National Geographic, Khan Academy, CDC, etc.). Do NOT invent sources. Do NOT include URLs — only source names. If you have no genuinely known sources for this topic, write exactly: "No sources were consulted for this content generation."`}${currentInfoNote}
+7. At the end, add a "SOURCES:" section with the provided source URLs` : ''}${currentInfoNote}
 
 Format your response exactly like this:
 [Your educational content here with headings and paragraphs]
@@ -405,8 +414,8 @@ SOURCES:
 1. [Source name] - [URL]
 2. [Source name] - [URL]
 ...${sourcesNote}` : `
-SOURCES:
-[List only genuinely known source names, no URLs, no invented entries. If none, write: "No sources were consulted for this content generation."]`}`;
+
+IMPORTANT: Do NOT include a SOURCES section since no verified web sources are available for this topic.`}`;
 
   const currentInfoUserNote = requiresCurrentInfo
     ? ` CRITICAL: Today is ${currentDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: userTimezone })}. Make sure to include ONLY the most recent information from ${currentDate.getFullYear()}.`
@@ -419,7 +428,7 @@ ${researchInfo}
 Make sure the content is engaging, accurate, and perfectly suited for grade ${gradeLevel} reading level.${currentInfoUserNote}
 ${actualSources.length > 0 ? `
 IMPORTANT: In your SOURCES section, you MUST use the exact URLs provided above. Do not make up or generalize URLs.` : `
-IMPORTANT: In your SOURCES section, list only source names (no URLs) that you are genuinely confident about. Do not invent sources. If you have none, write exactly: "No sources were consulted for this content generation."`}`;
+IMPORTANT: Do NOT include a SOURCES section or any URLs. No verified web sources are available for this topic.`}`;
 
   return { systemPrompt, userPrompt };
 }
@@ -437,11 +446,6 @@ function parseContentAndCitations(generatedContent: string): { content: string; 
   const content = generatedContent.substring(0, sourcesIndex).trim();
   const sourcesSection = generatedContent.substring(sourcesIndex + 'SOURCES:'.length).trim();
   
-  const noSourcesMessage = 'No sources were consulted for this content generation.';
-  if (sourcesSection.includes(noSourcesMessage)) {
-    return { content, citations: [noSourcesMessage] };
-  }
-
   const citations = sourcesSection
     .split('\n')
     .map(line => line.trim())

@@ -43,27 +43,6 @@ const ReviewWords = () => {
     const utterance = new SpeechSynthesisUtterance(word.toLowerCase());
     utterance.lang = "en-US";
     utterance.rate = 0.8;
-
-    // Select adult voice and avoid child voices
-    const voices = speechSynthRef.current.getVoices();
-    if (voices.length > 0) {
-      // Prefer adult voices and avoid child/young voices
-      let preferredVoice = voices.find(v =>
-        v.lang.startsWith('en-US') &&
-        !v.name.toLowerCase().includes('child') &&
-        !v.name.toLowerCase().includes('young')
-      );
-
-      // Fallback to first en-US voice if no adult voice found
-      if (!preferredVoice) {
-        preferredVoice = voices.find(v => v.lang.startsWith('en-US')) || voices[0];
-      }
-
-      if (preferredVoice) {
-        utterance.voice = preferredVoice;
-      }
-    }
-
     speechSynthRef.current.speak(utterance);
   };
 
