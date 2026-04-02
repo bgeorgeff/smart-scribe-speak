@@ -659,8 +659,14 @@ const Index = () => {
       <style>{`
         @media print {
           body {
-            print-color-adjust: exact;
-            -webkit-print-color-adjust: exact;
+            background-color: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          * {
+            background-color: white !important;
+            box-shadow: none !important;
+            border: none !important;
           }
           .print\\:hidden {
             display: none !important;
@@ -676,6 +682,12 @@ const Index = () => {
           }
           .print\\:text-black {
             color: black !important;
+          }
+          .print\\:border-none {
+            border: none !important;
+          }
+          .print\\:bg-white {
+            background-color: white !important;
           }
         }
       `}</style>
