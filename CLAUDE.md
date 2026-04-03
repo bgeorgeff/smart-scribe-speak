@@ -2,6 +2,8 @@
 
 This file gives Claude full context about the project, decisions made, and history across all sessions. Read this at the start of every session.
 
+**Claude instructions**: During every session, update this file whenever: a new model is chosen, a deployment command changes, a bug is fixed, a new API key is added, or any architectural decision is made. Do not wait until the end — update as changes happen.
+
 ---
 
 ## What This App Is
@@ -22,7 +24,8 @@ This file gives Claude full context about the project, decisions made, and histo
 | UI components | shadcn/ui + Tailwind CSS |
 | Auth + DB | Supabase (auth, RLS policies, edge functions) |
 | Backend logic | Supabase Edge Functions (Deno/TypeScript) |
-| AI — content generation | OpenAI `gpt-4o` |
+| AI — content generation | Anthropic `claude-sonnet-4-6` |
+| AI — research fallback | OpenAI `gpt-4o-mini` (when Brave search fails) |
 | AI — speech fallback | OpenAI `gpt-4o-mini` |
 | Web search | Brave Search API |
 | Speech-to-text | Supabase edge function (`speech-to-text`) |
@@ -36,9 +39,9 @@ This file gives Claude full context about the project, decisions made, and histo
 - **Frontend**: Cloudflare Pages — auto-deploys when you push to GitHub `main`. No manual deploy step needed for frontend changes.
 - **Backend (Edge Functions)**: Must be manually deployed via:
   ```bash
-  cd "C:\Users\bg657\Documents\Claude\smart-scribe-speak-aka-learn-anything"
-  supabase functions deploy generate-educational-content
+  cd "C:\Users\bg657\Documents\Claude\smart-scribe-speak-aka-learn-anything" && supabase functions deploy generate-educational-content --no-verify-jwt
   ```
+  **IMPORTANT**: Always include `--no-verify-jwt` — omitting it causes 401 auth errors.
 - **GitHub push workflow** (run from project folder):
   ```bash
   git add -A
@@ -52,17 +55,19 @@ This file gives Claude full context about the project, decisions made, and histo
 
 ### Content Generation (`generate-educational-content` edge function)
 - **Always runs Brave Search** for every topic — no gating on keywords
-- `requiresCurrentInfo` flag (based on keywords like "ranking", "latest", "score", etc.) controls date-specific prompting and live-event warnings, but does NOT control whether Brave runs
+- `requiresCurrentInfo` flag (based on keywords like "ranking", "latest", "score", "news", etc.) controls date-specific prompting and live-event warnings, but does NOT control whether Brave runs
 - **Hardened system prompt**: When Brave returns results, the prompt leads with a bold override instruction telling the model its training data is outdated and every fact MUST come from search results only
-- **Model**: `gpt-4o` for content generation (better instruction following than `gpt-4o-mini`)
-- **Model**: `gpt-4o-mini` kept only for the AI research fallback (when Brave fails)
+- **Model**: `claude-sonnet-4-6` (Anthropic) for content generation — better instruction following than any OpenAI model tested
+- **Model**: `gpt-4o-mini` (OpenAI) kept only for the AI research fallback (when Brave fails)
 - Grade-appropriate prompting: different complexity, vocabulary, sentence structure, and examples per grade band (1–3, 4–6, 7–9, 10–12)
+- **API keys required in Supabase secrets**: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `BRAVE_SEARCH_API_KEY`
 
-### Why gpt-4o and not others
-- `gpt-4.1` was tried but failed (incorrect model ID)
-- `gpt-4o-mini` was the original model — too weak at following override instructions (cited stale training data instead of search results, e.g. Novak Djokovic as ATP #1 when he was actually #5)
-- `Claude Sonnet 4.6` would be better at instruction following (~40% more expensive — $13.20 vs $9.50 per 1,000 calls) — worth revisiting if accuracy issues persist
-- `Claude Haiku 4.5` ($4.40/1k calls) is NOT recommended for this use case — instruction following is its weak point, same problem as gpt-4o-mini
+### Model history
+- `gpt-4o-mini` — original model, too weak at following override instructions (cited stale training data, e.g. Djokovic as ATP #1 when he was #5)
+- `gpt-4.1` — tried, failed (incorrect model ID)
+- `gpt-4o` — better but still mixed training data with search results, cited broken/401 URLs
+- `claude-sonnet-4-6` — current model, strongest instruction following (~$13.20 vs $9.50 per 1,000 calls vs gpt-4o)
+- `Claude Haiku 4.5` — NOT recommended, same instruction-following weakness as gpt-4o-mini
 
 ### Authentication
 - Supabase auth with email/password
@@ -122,8 +127,9 @@ smart-scribe-speak-aka-learn-anything/
 |---|---|---|
 | 401 errors on edge function | Fixed | JWT legacy verification toggle turned OFF in Supabase dashboard |
 | 401 errors from expired frontend session | Fixed | Added `refreshSession()` fallback in `Index.tsx` before calling edge function |
-| gpt-4.1 model ID failed | Fixed | Reverted to `gpt-4o` |
-| AI citing stale training data (e.g. wrong ATP ranking) | Partially fixed | Switched to `gpt-4o` + hardened system prompt; may need Sonnet 4.6 if still occurring |
+| gpt-4.1 model ID failed | Fixed | Reverted to `gpt-4o`, then switched to `claude-sonnet-4-6` |
+| AI citing stale training data (e.g. wrong ATP ranking) | Fixed | Switched to `claude-sonnet-4-6` + hardened system prompt |
+| gpt-4o citing broken/401 URLs from Brave results | Switched models | Now using `claude-sonnet-4-6` which follows source instructions more reliably |
 | iPhone TTS child voice | Fixed | Filter out child/young voices in voice selection logic |
 | Beige border on print | Fixed | Updated print CSS |
 | Cloudflare deploy — wrong build settings | Fixed | Framework: None, Build: `npm run build`, Output: `dist` |

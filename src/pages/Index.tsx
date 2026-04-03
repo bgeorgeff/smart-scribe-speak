@@ -495,7 +495,7 @@ const Index = () => {
                         Generating Content...
                       </>
                     ) : (
-                      "Generate Educational Content"
+                      "Generate Content"
                     )}
                   </Button>
                   {isGenerating && (

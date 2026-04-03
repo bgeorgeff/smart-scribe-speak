@@ -111,9 +111,13 @@ serve(async (req) => {
     const { topic, gradeLevel, userDate, userTimezone } = validateRequest(requestBody);
     
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
     if (!OPENAI_API_KEY) {
       throw new Error("OPENAI_API_KEY is not configured in Supabase Edge Function secrets");
+    }
+    if (!ANTHROPIC_API_KEY) {
+      throw new Error("ANTHROPIC_API_KEY is not configured in Supabase Edge Function secrets");
     }
 
     console.log(`Generating content for topic: ${topic}, grade: ${gradeLevel}`);
@@ -279,27 +283,30 @@ serve(async (req) => {
       })}):\n\n${researchInfo}\n\n---\n\nIMPORTANT: Today is ${todayFmt}. If the user asked about "today's game", you MUST ONLY discuss games that happened on ${todayFmt}. If no game happened on ${todayFmt}, clearly state that.\n\n${contentPrompt.userPrompt}` 
       : contentPrompt.userPrompt;
 
-    const contentResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const contentResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: contentPrompt.systemPrompt,
         messages: [
-          { role: 'system', content: contentPrompt.systemPrompt },
           { role: 'user', content: userPromptWithContext }
         ]
       })
     });
 
     if (!contentResponse.ok) {
-      throw new Error(`Content generation failed: ${contentResponse.status}`);
+      const errText = await contentResponse.text();
+      throw new Error(`Content generation failed: ${contentResponse.status} ${errText}`);
     }
 
     const contentData = await contentResponse.json();
-    const generatedContent = contentData.choices[0].message.content;
+    const generatedContent = contentData.content[0].text;
 
     let { content, citations } = parseContentAndCitations(generatedContent);
     
