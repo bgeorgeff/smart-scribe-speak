@@ -72,7 +72,7 @@ function validateRequest(body: unknown): { topic: string; gradeLevel: string; us
   };
 }
 
-async function authenticateUser(req: Request): Promise<{ userId: string }> {
+async function authenticateUser(req: Request): Promise<{ userId: string; authHeader: string }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     throw new Error('Authentication required');
@@ -90,12 +90,33 @@ async function authenticateUser(req: Request): Promise<{ userId: string }> {
   });
 
   const { data: { user }, error } = await supabaseClient.auth.getUser();
-  
+
   if (error || !user) {
     throw new Error('Invalid authentication');
   }
 
-  return { userId: user.id };
+  return { userId: user.id, authHeader };
+}
+
+async function logSearch(userId: string, authHeader: string, topic: string, gradeLevel: string): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) return;
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    await supabaseClient.from('search_logs').insert({
+      user_id: userId,
+      topic,
+      grade_level: gradeLevel,
+    });
+  } catch (err) {
+    // Non-fatal — don't break content generation if logging fails
+    console.error('Failed to log search:', err);
+  }
 }
 
 serve(async (req) => {
@@ -104,11 +125,14 @@ serve(async (req) => {
   }
 
   try {
-    const { userId } = await authenticateUser(req);
+    const { userId, authHeader } = await authenticateUser(req);
     console.log(`Authenticated user: ${userId}`);
 
     const requestBody = await req.json();
     const { topic, gradeLevel, userDate, userTimezone } = validateRequest(requestBody);
+
+    // Log the search (fire-and-forget, non-blocking)
+    logSearch(userId, authHeader, topic, gradeLevel);
     
     const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");

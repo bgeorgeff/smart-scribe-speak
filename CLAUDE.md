@@ -102,21 +102,56 @@ This file gives Claude full context about the project, decisions made, and histo
 smart-scribe-speak-aka-learn-anything/
 ├── src/
 │   ├── pages/
-│   │   ├── Index.tsx          # Main page — content generation UI, auth, TTS
-│   │   ├── ReviewWords.tsx    # Review words/flashcards page
-│   │   └── SyllableEditor.tsx # Syllable editing page
+│   │   ├── Index.tsx             # Main page — content generation UI, auth, TTS
+│   │   ├── ReviewWords.tsx       # Review words/flashcards page
+│   │   ├── SyllableEditor.tsx    # Syllable editing page
+│   │   └── AdminDashboard.tsx    # Admin-only dashboard at /admin
 │   ├── components/
-│   │   ├── Auth.tsx           # Login/signup component
+│   │   ├── Auth.tsx              # Login/signup component
 │   │   ├── ResetPassword.tsx
 │   │   └── SavedContentList.tsx
 │   └── integrations/supabase/
 │       ├── client.ts
 │       └── types.ts
 ├── supabase/
-│   └── functions/
-│       ├── generate-educational-content/index.ts   # Main AI content function
-│       └── speech-to-text/index.ts
-└── CLAUDE.md                  # This file
+│   ├── functions/
+│   │   ├── generate-educational-content/index.ts   # Main AI content function (also logs searches)
+│   │   ├── speech-to-text/index.ts
+│   │   ├── notify-new-user/index.ts                # Sends email to Bob on new signup (uses Resend)
+│   │   └── get-admin-data/index.ts                 # Returns all users/searches/saved for admin dashboard
+│   └── migrations/
+│       └── 20260425_create_search_logs.sql         # search_logs table
+└── CLAUDE.md                     # This file
+```
+
+---
+
+## Admin Features (added April 2026)
+
+### Admin Dashboard (`/admin`)
+- Only accessible when logged in as `bgeorgeff@gmail.com` — anyone else sees "Access Denied"
+- Shows 3 tabs: Users (all signups + last sign-in), Searches (every topic searched), Saved Passages
+- All tabs have live filter boxes
+- Powered by the `get-admin-data` edge function (service role key, never exposed to frontend)
+- **Deploy command**: push to GitHub (frontend auto-deploys), then deploy the edge function (see below)
+
+### New-User Email Notification (`notify-new-user` edge function)
+- Fires whenever a new user signs up via a Supabase Auth webhook
+- Sends an email to `bgeorgeff@protonmail.com` via Resend API
+- **Requires**: `RESEND_API_KEY` secret set in Supabase (see setup instructions in Known Issues)
+- If `RESEND_API_KEY` is not set, it logs to console but does NOT fail
+
+### Search Logging (`search_logs` table)
+- Every content generation call inserts a row into `search_logs` (user_id, topic, grade_level, created_at)
+- RLS: users can insert their own rows; only service_role can read
+- The admin dashboard enriches logs with user emails server-side
+
+### Deploy commands for new edge functions
+```bash
+cd "C:\Users\bg657\Documents\Claude\smart-scribe-speak-aka-learn-anything"
+supabase functions deploy notify-new-user --no-verify-jwt
+supabase functions deploy get-admin-data --no-verify-jwt
+supabase functions deploy generate-educational-content --no-verify-jwt
 ```
 
 ---
